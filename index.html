@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OpenWeight</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OpenWeight">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="application-name" content="OpenWeight">
+<meta name="theme-color" content="#E4E6E1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A2129" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+
+<style>
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/archivo-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/archivo-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/archivo-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/archivo-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/big-shoulders-display-latin-700-normal.woff2) format('woff2')}
+[hidden]:not([hidden=until-found i]){display:none!important}
+img{max-width:100%}
+:root{
+  --bg:#E4E6E1;
+  --surface:#F6F7F4;
+  --surface-2:#ECEEE9;
+  --ink:#1B2430;
+  --ink-2:#5D6875;
+  --ink-3:#8B95A0;
+  --line:#CBD0C9;
+  --line-2:#DCE0D9;
+  --brass:#8F6511;
+  --brass-soft:#E9DCBE;
+  --moss:#3C6A4E;
+  --moss-soft:#D7E4D8;
+  --on-moss:#F6F7F4;
+  --alert:#9B3D2E;
+  --radius:10px;
+  --tap:48px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A2129;
+    --surface:#232C35;
+    --surface-2:#2A343E;
+    --ink:#E8EBE6;
+    --ink-2:#9AA6B1;
+    --ink-3:#6F7C88;
+    --line:#333F4A;
+    --line-2:#2C363F;
+    --on-moss:#141A15;
+    --brass:#E0A93B;
+    --brass-soft:#3A3322;
+    --moss:#7FB58C;
+    --moss-soft:#25352A;
+    --alert:#E08272;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1A2129;
+  --surface:#232C35;
+  --surface-2:#2A343E;
+  --ink:#E8EBE6;
+  --ink-2:#9AA6B1;
+  --ink-3:#6F7C88;
+  --line:#333F4A;
+  --line-2:#2C363F;
+  --on-moss:#141A15;
+  --brass:#E0A93B;
+  --brass-soft:#3A3322;
+  --moss:#7FB58C;
+  --moss-soft:#25352A;
+  --alert:#E08272;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-0.01em}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font-family:inherit;font-size:16px;color:var(--ink)}
+.display{font-family:'Big Shoulders Display','Archivo',sans-serif;font-weight:700;letter-spacing:0.01em;line-height:0.95}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+.hide{display:none !important}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:30;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top);
+}
+.hbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:12px 0 10px}
+.hweek{font-size:38px;line-height:0.85}
+.hsub{font-size:13px;color:var(--ink-2);margin-top:4px}
+.hdate{font-size:13px;color:var(--ink-2);text-align:right;padding-bottom:3px}
+.meter{height:3px;background:var(--line-2);border-radius:2px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--brass);width:0;transition:width .25s ease}
+
+/* ---------- day strip ---------- */
+.strip{display:flex;gap:6px;padding:10px 0 12px;overflow-x:auto;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;min-width:76px;padding:8px 10px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--surface);text-align:left;
+}
+.chip b{display:block;font-size:14px;font-weight:600}
+.chip span{display:block;font-size:11px;color:var(--ink-2);margin-top:2px}
+.chip[aria-pressed="true"]{border-color:var(--brass);background:var(--brass-soft)}
+.chip.done{border-color:var(--moss);background:var(--moss-soft)}
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:10px;overflow:hidden;
+}
+.card.complete{border-color:var(--moss)}
+.chead{display:flex;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left}
+.cname{flex:1;min-width:0}
+.cname b{display:block;font-size:17px;font-weight:600;letter-spacing:-0.01em}
+.cname span{display:block;font-size:13px;color:var(--ink-2);margin-top:1px}
+.ctag{font-size:12px;color:var(--ink-2);padding:3px 7px;border:1px solid var(--line);border-radius:999px;white-space:nowrap}
+.ctag.ok{color:var(--moss);border-color:var(--moss)}
+.caret{color:var(--ink-3);font-size:13px;transition:transform .18s}
+.card.open .caret{transform:rotate(90deg)}
+.cbody{padding:0 14px 14px;border-top:1px solid var(--line-2)}
+
+/* ---------- hero weight + bar ---------- */
+.hero{display:flex;align-items:center;gap:14px;padding:14px 0 6px}
+.heroW{font-size:54px;line-height:0.8}
+.heroW small{font-size:18px;color:var(--ink-2);margin-left:3px;font-family:'Archivo';font-weight:500}
+.heroNote{font-size:13px;color:var(--ink-2);flex:1}
+.bar{display:flex;align-items:center;justify-content:center;height:34px;margin:2px 0 10px}
+.sleeve{height:6px;background:var(--ink-3);flex:0 0 26px;border-radius:2px}
+.shaft{height:4px;background:var(--ink-3);flex:0 0 22px}
+.plate{width:11px;margin:0 1px;border-radius:2px;background:var(--ink-2)}
+.plabel{font-size:11px;color:var(--ink-2);margin-left:8px}
+
+/* ---------- set rows ---------- */
+.set{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line-2)}
+.set:first-child{border-top:none}
+.sn{width:20px;font-size:13px;color:var(--ink-3);font-weight:600}
+.fld{flex:1;display:flex;align-items:center;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;padding:0 8px;height:var(--tap)}
+.fld input{width:100%;border:none;background:none;outline:none;font-weight:600;font-variant-numeric:tabular-nums;padding:0;min-width:0}
+.fld label{font-size:11px;color:var(--ink-3);margin-left:4px;white-space:nowrap}
+.tick{
+  flex:0 0 var(--tap);height:var(--tap);border-radius:8px;
+  border:1px solid var(--line);background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--ink-3)
+}
+.set.done .tick{background:var(--moss);border-color:var(--moss);color:var(--on-moss)}
+.set.done .fld{opacity:.55}
+.note{font-size:13px;color:var(--ink-2);margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line-2)}
+.bump{font-size:13px;color:var(--brass);font-weight:600;margin-top:8px}
+
+/* ---------- conditioning ---------- */
+.cond .cbody{padding-top:12px}
+.rounds{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.round{width:var(--tap);height:var(--tap);border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-weight:600;font-size:14px}
+.round.done{background:var(--moss);border-color:var(--moss);color:var(--on-moss)}
+
+/* ---------- rest timer ---------- */
+.rest{
+  position:fixed;left:0;right:0;z-index:40;
+  bottom:calc(64px + env(safe-area-inset-bottom));
+  background:var(--ink);color:var(--bg);
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;
+}
+.rest .t{font-family:'Big Shoulders Display','Archivo',sans-serif;font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;min-width:62px}
+.rest .lbl{flex:1;min-width:0;font-size:13px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rest button{flex:0 0 auto;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:9px 11px;font-size:14px;font-weight:600}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:var(--surface);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{flex:1;padding:9px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--ink-3)}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav button[aria-current="page"]{color:var(--brass);font-weight:600}
+
+/* ---------- generic ---------- */
+.sec{margin:18px 0 8px;font-size:13px;color:var(--ink-2);font-weight:600}
+.btn{
+  display:block;width:100%;min-height:var(--tap);border-radius:var(--radius);
+  background:var(--ink);color:var(--bg);font-weight:600;padding:12px;margin-top:12px;
+}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+.btn.warn{background:none;border:1px solid var(--alert);color:var(--alert)}
+.row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line-2)}
+.row:last-child{border-bottom:none}
+.row .lab{flex:1;font-size:15px}
+.row .lab small{display:block;color:var(--ink-2);font-size:12px}
+.inp{width:88px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 10px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{padding:10px 14px;font-size:14px;font-weight:600;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.empty{padding:28px 14px;text-align:center;color:var(--ink-2);font-size:15px}
+.pill{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line-2)}
+.spark{width:100%;height:56px;display:block;margin-top:8px}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(140px + env(safe-area-inset-bottom));z-index:60;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;
+  font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s
+}
+.toast.show{opacity:1}
+/* ---------- notes, warm-up, body ---------- */
+.ta{width:100%;min-height:84px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px;font:inherit;font-size:16px;color:var(--ink);resize:vertical}
+.ta::placeholder,.inp::placeholder{color:var(--ink-3)}
+.warm{margin:2px 0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2)}
+.warm summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;min-height:44px;font-size:14px;font-weight:600}
+.warm summary::-webkit-details-marker{display:none}
+.warm summary small{font-weight:400;color:var(--ink-2);font-size:12px}
+.warm .wrow{display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:1px solid var(--line-2);font-size:14px}
+.wrow .ww{flex:0 0 66px;font-weight:600}
+.wrow .wr{flex:0 0 52px;color:var(--ink-2)}
+.wrow .wp{flex:1;min-width:0;color:var(--ink-2);font-size:12px;text-align:right}
+.stats{display:flex;gap:12px;padding:14px 0 4px}
+.stat{flex:1;min-width:0}
+.stat .k{font-size:12px;color:var(--ink-2);font-weight:600}
+.stat .v{font-size:34px;margin-top:6px;line-height:0.9}
+.stat .v small{font-size:14px;color:var(--ink-2);font-family:'Archivo',sans-serif;font-weight:500;margin-left:2px}
+.btn.sm{display:inline-block;width:auto;min-height:40px;padding:8px 12px;margin:0;font-size:14px}
+.mrows{padding:0 12px}
+.wlab{font-size:12px;color:var(--ink-2);font-weight:600;padding:2px 12px 6px}
+.warm .seg{margin:0 12px 10px;background:var(--surface)}
+.wi{width:64px;height:38px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 8px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);font-size:16px}
+.wi.wr2{width:52px}
+.wrow .wu,.wrow .wx{color:var(--ink-2);font-size:13px;white-space:nowrap}
+.wrow .wp.bad{color:var(--alert)}
+.wfoot{padding:8px 12px 12px;border-top:1px solid var(--line-2)}
+.wfoot button{font-size:14px;font-weight:600;color:var(--brass);min-height:40px;padding:0}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hbar">
+      <div>
+        <div class="hweek display" id="hWeek">Week 1</div>
+        <div class="hsub" id="hSub">Ramp phase</div>
+      </div>
+      <div class="hdate" id="hDate"></div>
+    </div>
+    <div class="meter"><i id="hMeter"></i></div>
+    <div class="strip" id="strip"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<div class="rest hide" id="rest">
+  <div class="t num" id="restT">2:00</div>
+  <div class="lbl" id="restL">Rest</div>
+  <button id="restAdd">+30s</button>
+  <button id="restSkip">Done</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav>
+  <button data-view="today" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 12h2m12 0h2M8 8v8m8-8v8M6 9v6m12-6v6M8 12h8"/></svg>Today</button>
+  <button data-view="week"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/></svg>Week</button>
+  <button data-view="lifts"><svg viewBox="0 0 24 24"><path d="M4 18V9m5 9V5m5 13v-6m5 6V7"/></svg>Lifts</button>
+  <button data-view="body"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 11a4 4 0 0 1 8 0M12 11l2.2-2.4"/></svg>Body</button>
+  <button data-view="setup"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10l1.4 1.4m0-12.8l-1.4 1.4m-10 10l-1.4 1.4"/></svg>Setup</button>
+</nav>
+
+<script>
+"use strict";
+
+/* ============================================================
+   EXERCISES
+   ============================================================ */
+const EX = {
+  squat:  {n:"Back squat",             kind:"bb", main:1, big:1},
+  bench:  {n:"Bench press",            kind:"bb", main:1, micro:1, frac:1},
+  dead:   {n:"Deadlift",               kind:"bb", main:1, big:1},
+  ohp:    {n:"Overhead press",         kind:"bb", main:1, micro:1, frac:1},
+  row:    {n:"Barbell row",            kind:"bb", main:1},
+
+  dbinc:  {n:"Incline dumbbell press", kind:"db", inc:5,  seed:["bench",0.22]},
+  dbcurl: {n:"Dumbbell curl",          kind:"db", inc:5,  seed:["bench",0.14]},
+  chin:   {n:"Chin-up, band assisted", kind:"bw", inc:5, assist:1},
+  hollow: {n:"Hollow body hold",       kind:"timed"}
+};
+
+/* per-session jump on each main lift */
+const LPINC   = {squat:5, bench:5, dead:10, ohp:5, row:5};
+/* default starting weights; edit in Setup */
+const OPENER  = {squat:95, bench:95, dead:135, ohp:55, row:85};
+
+/* optional reference history, left empty in the public build */
+const REF = {};
+
+const OHP_ALT  = "Outside on the stands. If the weather is against you, press seated and log the weight you actually used.";
+const CHIN_ALT = "Band under the feet, heavy enough to finish all six. No negatives.";
+
+const SESSIONS = {
+  A:{name:"Day A", sub:"Press and deadlift", items:[
+    {ex:"squat",  sets:3, reps:5, rest:180},
+    {ex:"ohp",    sets:3, reps:5, rest:180, alt:OHP_ALT},
+    {ex:"dead",   sets:1, reps:5, rest:180},
+    {ex:"chin",   sets:3, reps:6, rest:120, acc:1, alt:CHIN_ALT},
+    {ex:"hollow", sets:3, secs:40, rest:60, acc:1, timed:1}
+  ]},
+  B:{name:"Day B", sub:"Bench and row", items:[
+    {ex:"squat",  sets:3, reps:5, rest:180},
+    {ex:"bench",  sets:3, reps:5, rest:180},
+    {ex:"row",    sets:3, reps:5, rest:150},
+    {ex:"dbinc",  sets:3, reps:10, rest:90, acc:1},
+    {ex:"dbcurl", sets:3, reps:12, rest:60, acc:1}
+  ]}
+};
+
+const WEEKNOTES = [
+  "Everything will feel insultingly light. That is the point. The first three weeks buy you connective tissue, not strength.",
+  "Still light, still adding. Do not skip ahead — the jumps compound faster than they look.",
+  "Soreness should be easing. If a warm-up feels heavier than the work set did last week, you slept badly, not lost strength.",
+  "Around here the squat starts to feel like work. Keep the same bar speed and the weight keeps moving.",
+  "First month done. Check your numbers on the Lifts tab.",
+  "Deadlift jumps drop to 5 lb as soon as a set of five stops feeling easy. Tell the app by logging what you did.",
+  "Rest is getting longer now — three to five minutes between work sets is normal and not a sign of weakness.",
+  "Halfway. Bench and press will stall before the squat does. That is expected, not failure.",
+  "When a lift misses twice running, the app cuts it ten percent and you climb back. That is the program working.",
+  "Form drifts before it breaks. Film a set if anything feels different.",
+  "The squat is probably the last thing still climbing cleanly. Ride it.",
+  "If two lifts have reset more than once, the linear run is finishing. That is when the split earns its place.",
+  "Last programmed week. Whatever is still adding weight, keep adding it — there is no need to stop on schedule."
+];
+
+const WEEKS = [];
+for(let i=1;i<=13;i++){
+  WEEKS.push({
+    w:i,
+    days: i%2 ? ["A","B","A"] : ["B","A","B"],
+    dow: [1,3,5],
+    note: WEEKNOTES[i-1]
+  });
+}
+
+/* Plate inventory, as PAIRS available. Max per side is 450, so supply is
+   never the binding constraint — the counts matter for picking a loadable
+   combination, not for how heavy you can go. */
+const PLATES = [[45,6],[35,2],[25,2],[10,3],[5,4],[2.5,3],[1,1],[0.75,1],[0.5,1],[0.25,1]];
+const UNIT = 0.25;                                   // smallest plate you own
+/* Fractional plates (1, 0.75, 0.5, 0.25) are reserved for lifts flagged frac:
+   bench press, overhead press and, if one is added, barbell curls. Every other
+   lift is built from the whole plates only. */
+const FRACTIONAL = [1, 0.75, 0.5, 0.25];
+
+/* Every per-side load you can actually build, each with the combination that
+   uses the fewest plates and, where several tie, the heaviest ones — 45/45/25
+   rather than 45/35/35, which is how anyone loads a bar and which spares the
+   plates you own fewest of. Sum of squares is the tie-break: for a fixed total
+   and plate count it rewards putting the weight in the big plates.
+   0/1 knapsack over the individual pairs, so no pair is used twice. */
+const REACH = {};   // "f" = every plate, "n" = whole plates only
+function buildReach(frac){
+  const items = [];
+  PLATES.forEach(([w,c])=>{
+    if(!frac && FRACTIONAL.includes(w)) return;
+    for(let i=0;i<c;i++) items.push(w);
+  });
+  const max = Math.round(items.reduce((a,w)=>a+w, 0)/UNIT);
+  const cost = new Array(max+1).fill(Infinity);   // plates used
+  const heft = new Array(max+1).fill(-Infinity);  // sum of squares, higher is better
+  const par  = new Array(max+1).fill(null);
+  cost[0] = 0; heft[0] = 0;
+  for(const w of items){
+    const u = Math.round(w/UNIT), sq = w*w;
+    for(let s=max; s>=u; s--){
+      if(cost[s-u] === Infinity) continue;
+      const c2 = cost[s-u] + 1, h2 = heft[s-u] + sq;
+      if(c2 < cost[s] || (c2 === cost[s] && h2 > heft[s])){
+        cost[s] = c2; heft[s] = h2; par[s] = {w:w, prev:s-u};
+      }
+    }
+  }
+  REACH[frac ? "f" : "n"] = par.map((p,s)=> s===0 ? {w:0, prev:-1} : (cost[s]===Infinity ? null : p));
+}
+function reachFor(frac){
+  const k = frac ? "f" : "n";
+  if(!REACH[k]) buildReach(frac);
+  return REACH[k];
+}
+const usesFrac = id => !!(EX[id] && EX[id].frac);
+function loadable(perSide, id){
+  const table = reachFor(usesFrac(id));
+  const u = Math.round(perSide/UNIT);
+  return u >= 0 && u < table.length && table[u] !== null;
+}
+const DOWN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DOWS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* flat, ordered list of every training slot in the program */
+const SLOTS = [];
+WEEKS.forEach(wk => wk.days.forEach((sid,d) => SLOTS.push({w:wk.w, d:d, sid:sid})));
+const slotIndex = (w,d) => SLOTS.findIndex(s => s.w===w && s.d===d);
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const LS_KEY = "training.v2";
+let S = null, view = "today", cursor = null;
+
+function blankState(){
+  return {
+    setup:false,
+    start:null,
+    bar:45, micro:1.25, dbMin:15, dbMax:75,
+    lpStart:{},     // opening work weight per main lift
+    load:{},        // accessory working weight
+    log:{},         // "w3d2": {done:{itemIdx:[{w,r,ok}]}, ts, note}
+    body:[],        // weigh-ins: {d, wt, waist, chest, arm}
+    warm:{},        // warm-up step size per lift: more | std | few
+    lastBackup:0,
+    updated:0
+  };
+}
+
+function loadLocal(){
+  try{ const raw = localStorage.getItem(LS_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return null;
+}
+function saveLocal(){
+  S.updated = Date.now();
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){}
+}
+/* ============================================================
+   MATH
+   ============================================================ */
+const roundTo = (n,s) => Math.round(n/s)*s;
+const barStep = () => Math.max(2*(S.micro||1.25), 1);
+const roundBar = n => Math.max(roundTo(n, barStep()), S.bar);
+/* squat, deadlift and row move in 5 lb steps only — micro plates are for the presses */
+const stepFor  = id => (EX[id] && EX[id].micro) ? barStep() : 5;
+const roundLift = (n,id) => Math.max(roundTo(n, stepFor(id)), S.bar);
+const BACKOFF = 5;   // what a second consecutive miss takes off
+function dbRound(n){
+  let v = roundTo(n,5);
+  if(v < S.dbMin) v = S.dbMin;
+  if(v > S.dbMax) v = S.dbMax;
+  return v;
+}
+function seedLoad(id){
+  const ex = EX[id];
+  if(!ex || ex.kind==="bw" || ex.kind==="timed") return 0;
+  if(!ex.seed) return ex.kind==="db" ? S.dbMin : S.bar;
+  const [src,f] = ex.seed;
+  const base = S.lpStart[src];
+  if(!base) return ex.kind==="db" ? S.dbMin : S.bar;
+  return ex.kind==="db" ? dbRound(base*f) : roundTo(base*f, ex.inc||5);
+}
+
+const key = (w,d) => "w"+w+"d"+d;
+function dayLog(w,d){
+  const k = key(w,d);
+  if(!S.log[k]) S.log[k] = {done:{}, ts:0};
+  return S.log[k];
+}
+
+/* how a given exercise went in a given slot: hit | miss | none */
+function outcome(exId, slot){
+  const sess = SESSIONS[slot.sid];
+  const idx = sess.items.findIndex(i => i.ex === exId);
+  if(idx < 0) return "none";
+  const item = sess.items[idx];
+  const lg = S.log[key(slot.w, slot.d)];
+  const arr = (lg && lg.done && lg.done[idx]) || [];
+  const logged = arr.filter(x => x && x.ok);
+  if(!logged.length) return "none";
+  if(logged.length < item.sets) return "miss";
+  return logged.every(x => (x.r||0) >= item.reps) ? "hit" : "miss";
+}
+
+function lastLoggedIndex(){
+  let last = -1;
+  SLOTS.forEach((s,i)=>{
+    const lg = S.log[key(s.w,s.d)];
+    if(lg && lg.done && Object.keys(lg.done).length) last = i;
+  });
+  return last;
+}
+
+/* the linear-progression weight for a main lift at a given slot */
+function lpTarget(exId, w, d){
+  const start = S.lpStart[exId];
+  if(start == null) return null;
+  const inc = LPINC[exId] || 5;
+  const here = slotIndex(w,d);
+  const last = lastLoggedIndex();
+  return lpWalk(exId, here, last).wt;
+}
+
+/* Walks the schedule and returns the state of a lift at a given slot.
+   A miss repeats the weight. On the presses the jump also halves, because
+   micro plates make that possible; squat, deadlift and row keep 5 lb steps.
+   A second miss in a row takes 5 lb off. */
+function lpWalk(exId, here, last){
+  const micro = !!(EX[exId] && EX[exId].micro);
+  let wt = S.lpStart[exId], step = LPINC[exId] || 5, fails = 0, backoffs = 0;
+  for(let i=0; i<here; i++){
+    const slot = SLOTS[i];
+    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId)) continue;
+    if(i <= last){
+      const o = outcome(exId, slot);
+      if(o === "hit"){ wt += step; fails = 0; }
+      else if(o === "miss"){
+        fails++;
+        if(fails === 1){
+          if(micro) step = Math.max(step/2, barStep());   // same weight, smaller jumps
+        }else{
+          wt = Math.max(wt - BACKOFF, S.bar); fails = 0; backoffs++;
+        }
+      }
+      // "none" (skipped) repeats the same weight
+    }else{
+      wt += step;   // projection into the future
+    }
+  }
+  return {wt: roundLift(wt, exId), step: step, fails: fails, backoffs: backoffs};
+}
+
+const lpStep     = (exId,w,d) => lpWalk(exId, slotIndex(w,d)+1, lastLoggedIndex()).step;
+const lpBackoffs = (exId,w,d) => lpWalk(exId, slotIndex(w,d)+1, lastLoggedIndex()).backoffs;
+
+/* what happens to this lift next, given what is logged for this slot */
+function nextMove(exId, w, d){
+  const o = outcome(exId, SLOTS[slotIndex(w,d)]);
+  if(o === "hit") return "All five. Add "+lpStep(exId,w,d)+" lb next session.";
+  if(o === "none") return "";
+  const micro = !!(EX[exId] && EX[exId].micro);
+  const here = slotIndex(w,d);
+  for(let i=here-1; i>=0; i--){
+    const slot = SLOTS[i];
+    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId)) continue;
+    const prev = outcome(exId, slot);
+    if(prev === "none") continue;
+    if(prev === "miss"){
+      const b = lpBackoffs(exId, w, d);
+      return b >= 2
+        ? "Second miss again, down another "+BACKOFF+" lb. This lift has stalled twice — the linear run is finishing."
+        : "Second miss in a row. Next session comes down "+BACKOFF+" lb.";
+    }
+    break;
+  }
+  return micro
+    ? "Short of the target. Same weight next session, then "+Math.max((LPINC[exId]||5)/2, barStep())+" lb steps."
+    : "Short of the target. Repeat this weight next session.";
+}
+
+function targetFor(item, w, d){
+  const ex = EX[item.ex];
+  if(!ex || ex.kind === "timed") return 0;
+  if(ex.main) return lpTarget(item.ex, w, d);
+  let base = S.load[item.ex];
+  if(base == null) base = seedLoad(item.ex);
+  if(ex.kind === "db") return dbRound(base);
+  if(ex.kind === "bw") return base || 0;
+  return roundBar(base);
+}
+
+/* Plates to hang on one side, drawn from what is actually in the rack.
+   Returns null when the weight cannot be built from the inventory. */
+function plates(total, id){
+  const per = (total - S.bar)/2;
+  if(per <= 0.01) return [];
+  const table = reachFor(usesFrac(id));
+  let u = Math.round(per/UNIT);
+  if(u >= table.length || table[u] === null) return null;
+  const out = [];
+  while(u > 0){
+    const step = table[u];
+    out.push(step.w);
+    u = step.prev;
+  }
+  return out.sort((a,b)=>b-a);
+}
+
+/* dates */
+function mondayOf(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+  return x;
+}
+function nextMonday(){
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + ((8 - (d.getDay()||7)) % 7 || 7));
+  return d;
+}
+const isoOf = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function dateFor(w,d){
+  if(!S.start) return null;
+  const base = new Date(S.start+"T00:00:00");
+  const out = new Date(base);
+  out.setDate(out.getDate() + (w-1)*7 + (WEEKS[w-1].dow[d]-1));
+  return out;
+}
+function currentSlot(){
+  if(!S.start) return {w:1,d:0};
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.floor((today - new Date(S.start+"T00:00:00"))/86400000);
+  let w = Math.min(Math.max(Math.floor(diff/7)+1, 1), 13);
+  const dow = today.getDay()===0 ? 7 : today.getDay();
+  let d = WEEKS[w-1].dow.indexOf(dow);
+  if(d < 0){
+    const un = WEEKS[w-1].days.findIndex((_,i)=>!isDayDone(w,i));
+    d = un >= 0 ? un : 0;
+  }
+  return {w,d};
+}
+
+function dayTotals(w,d){
+  const sess = SESSIONS[WEEKS[w-1].days[d]];
+  const lg = S.log[key(w,d)];
+  let total=0, done=0;
+  sess.items.forEach((item,i)=>{
+    total += item.sets;
+    const arr = (lg && lg.done && lg.done[i]) || [];
+    done += arr.filter(x=>x&&x.ok).length;
+  });
+  return {done,total};
+}
+const isDayDone = (w,d) => { const t = dayTotals(w,d); return t.total>0 && t.done>=t.total; };
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const main = $("#main");
+
+function render(){
+  if(!S.setup && view!=="setup") view = "setup";
+  document.querySelectorAll("nav button").forEach(b=>
+    b.setAttribute("aria-current", b.dataset.view===view ? "page" : "false"));
+  const bare = (view==="setup" || view==="lifts" || view==="body");
+  document.querySelector("header").classList.toggle("hide", bare);
+  main.style.paddingTop = bare ? "env(safe-area-inset-top)" : "";
+  $("#strip").classList.toggle("hide", view==="week");
+  if(view==="today") renderToday();
+  else if(view==="week") renderWeek();
+  else if(view==="lifts") renderLifts();
+  else if(view==="body") renderBody();
+  else renderSetup();
+}
+
+function refreshChrome(){
+  const t = dayTotals(cursor.w, cursor.d);
+  const m = $("#hMeter");
+  if(m) m.style.width = (t.total ? t.done/t.total*100 : 0)+"%";
+  document.querySelectorAll("#strip .chip").forEach((c,i)=>
+    c.classList.toggle("done", isDayDone(cursor.w,i)));
+}
+
+function renderHeader(){
+  if(!cursor) cursor = currentSlot();
+  const wk = WEEKS[cursor.w-1];
+  $("#hWeek").textContent = "Week "+wk.w;
+  $("#hSub").textContent = "Linear progression";
+  const dt = dateFor(cursor.w, cursor.d);
+  $("#hDate").innerHTML = dt ? DOWN[dt.getDay()]+"<br>"+dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}) : "";
+  const t = dayTotals(cursor.w, cursor.d);
+  $("#hMeter").style.width = (t.total ? t.done/t.total*100 : 0)+"%";
+  const strip = $("#strip"); strip.innerHTML = "";
+  wk.days.forEach((sid,i)=>{
+    const dd = dateFor(wk.w,i);
+    const b = document.createElement("button");
+    b.className = "chip" + (isDayDone(wk.w,i)?" done":"");
+    b.setAttribute("aria-pressed", i===cursor.d ? "true":"false");
+    b.innerHTML = "<b>"+SESSIONS[sid].name+"</b><span>"+
+      (dd ? DOWS[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate() : "")+"</span>";
+    b.onclick = ()=>{ cursor={w:wk.w,d:i}; render(); };
+    strip.appendChild(b);
+  });
+}
+
+function renderToday(){
+  renderHeader();
+  const wk = WEEKS[cursor.w-1];
+  const sess = SESSIONS[wk.days[cursor.d]];
+  const lg = dayLog(cursor.w, cursor.d);
+  main.innerHTML = "";
+
+  const intro = document.createElement("div");
+  intro.className = "note";
+  intro.style.cssText = "border-top:none;margin:4px 0 12px;padding-top:0";
+  intro.textContent = wk.note;
+  main.appendChild(intro);
+
+  sess.items.forEach((item,idx)=> main.appendChild(exCard(item, idx, lg)));
+
+  const nh = document.createElement("div"); nh.className = "sec"; nh.textContent = "Session notes";
+  main.appendChild(nh);
+  const ta = document.createElement("textarea");
+  ta.className = "ta"; ta.id = "sessNote";
+  ta.placeholder = "Sleep, sore spots, how the bar moved";
+  ta.value = lg.note || "";
+  let noteT = null;
+  const saveNote = ()=>{
+    if(ta.value.trim()) lg.note = ta.value; else delete lg.note;
+    saveLocal();
+  };
+  ta.oninput = ()=>{ clearTimeout(noteT); noteT = setTimeout(saveNote, 600); };
+  ta.onblur  = ()=>{ clearTimeout(noteT); if((lg.note||"") !== ta.value) saveNote(); };
+  main.appendChild(ta);
+
+  const foot = document.createElement("div");
+  foot.className = "note";
+  foot.textContent = sess.name+", "+sess.sub.toLowerCase()+
+    ". Log what you actually lifted, not what was written — the next session is calculated from it.";
+  main.appendChild(foot);
+}
+
+function exCard(item, idx, lg){
+  const ex = EX[item.ex];
+  const card = document.createElement("div");
+  card.className = "card";
+  const n = item.sets;
+  let bumpEl = null;
+
+  const scheme = item.timed ? n+" x "+item.secs+" seconds" : n+" x "+item.reps;
+  const head = document.createElement("button");
+  head.className = "chead";
+  head.innerHTML =
+    '<div class="cname"><b>'+ex.n+'</b><span>'+scheme+(item.acc?", accessory":"")+'</span></div>'+
+    '<div class="ctag"></div><div class="caret">›</div>';
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "cbody hide";
+  card.appendChild(body);
+  refreshItem();   // show what is already logged, before the card is ever opened
+  head.onclick = ()=>{
+    const open = !card.classList.contains("open");
+    card.classList.toggle("open", open);
+    body.classList.toggle("hide", !open);
+    if(open) buildBody();
+  };
+
+  function buildBody(){
+    body.innerHTML = "";
+    const tw = targetFor(item, cursor.w, cursor.d);
+    const arr = lg.done[idx] || [];
+
+    if(!item.timed){
+      const label = ex.assist ? "band" : ex.kind==="db" ? "per hand" : ex.kind==="bw" ? "added" : "lb";
+      const hero = document.createElement("div");
+      hero.className = "hero";
+      hero.innerHTML =
+        '<div class="heroW display num">'+(tw || (ex.assist ? "0" : "BW"))+'<small>'+(tw||ex.assist?label:"")+'</small></div>'+
+        '<div class="heroNote">'+(ex.main
+          ? "Same weight across all "+n+" sets. Five reps each, every rep."
+          : ex.assist
+          ? "Log the band's rating, or 0 for none. Hit every rep and you move to a lighter band."
+          : "Hit every rep in every set and the weight goes up next time.")+'</div>';
+      body.appendChild(hero);
+      if(ex.kind==="bb" && tw > S.bar) body.appendChild(barGraphic(tw, item.ex));
+      if(ex.main){ const wu = warmEl(tw, item.ex, lg, idx); if(wu) body.appendChild(wu); }
+    }
+    if(item.alt){
+      const a = document.createElement("div");
+      a.style.cssText = "font-size:13px;color:var(--ink-2);padding:2px 0 10px";
+      a.textContent = item.alt;
+      body.appendChild(a);
+    }
+
+    for(let i=0;i<n;i++){
+      const rec = arr[i] || {};
+      const tr = item.timed ? item.secs : item.reps;
+      const row = document.createElement("div");
+      row.className = "set" + (rec.ok?" done":"");
+      row.innerHTML =
+        '<div class="sn num">'+(i+1)+'</div>'+
+        (item.timed ? '' :
+          '<div class="fld"><input type="number" inputmode="decimal" step="'+(ex.kind==="db"?5:(ex.main?stepFor(item.ex):barStep()))+
+          '" value="'+(rec.w!=null?rec.w:tw)+'"><label>'+(ex.assist?"band":"lb")+'</label></div>')+
+        '<div class="fld"><input type="number" inputmode="numeric" value="'+(rec.r!=null?rec.r:tr)+
+        '"><label>'+(item.timed?"sec":"reps")+'</label></div>'+
+        '<button class="tick" aria-label="Log set '+(i+1)+'">✓</button>';
+      const inputs = row.querySelectorAll("input");
+      row.querySelector(".tick").onclick = ()=>{
+        const list = lg.done[idx] || (lg.done[idx]=[]);
+        if(list[i] && list[i].ok){
+          list[i] = {w:list[i].w, r:list[i].r, ok:false};
+          row.classList.remove("done");
+        }else{
+          const v = [...inputs].map(x=>parseFloat(x.value)||0);
+          list[i] = item.timed ? {r:v[0], ok:true} : {w:v[0], r:v[1], ok:true};
+          row.classList.add("done");
+          startRest(item.rest||90, ex.n);
+        }
+        lg.ts = Date.now();
+        bumpAccessory(item, idx, lg);
+        saveLocal();
+        refreshItem();
+        refreshChrome();
+      };
+      body.appendChild(row);
+    }
+
+    bumpEl = document.createElement("div");
+    bumpEl.className = "bump";
+    body.appendChild(bumpEl);
+    refreshItem();
+  }
+
+  function refreshItem(){
+    const got = ((lg.done[idx]||[]).filter(x=>x&&x.ok)).length;
+    const tag = card.querySelector(".ctag");
+    tag.textContent = got+"/"+n;
+    tag.classList.toggle("ok", got>=n);
+    card.classList.toggle("complete", got>=n);
+    if(bumpEl){
+      let msg = "";
+      if(got >= n){
+        msg = ex.main ? nextMove(item.ex, cursor.w, cursor.d) : accessoryNote(item, idx, lg);
+      }
+      bumpEl.textContent = msg;
+      bumpEl.style.display = msg ? "" : "none";
+    }
+  }
+
+  return card;
+}
+
+function accessoryNote(item, idx, lg){
+  const ex = EX[item.ex];
+  if(item.timed) return "";
+  const logged = (lg.done[idx]||[]).filter(x=>x&&x.ok);
+  if(logged.length < item.sets) return "";
+  if(!logged.every(x=>(x.r||0) >= item.reps)) return "";
+  if(ex.assist) return "All sets hit. Drop to a lighter band next time, or go unassisted if you were already at zero.";
+  const cur = S.load[item.ex] != null ? S.load[item.ex] : seedLoad(item.ex);
+  if(ex.kind==="db" && cur >= S.dbMax) return "At your heaviest pair. Add reps instead.";
+  return "All sets hit. Add "+(ex.inc||5)+" lb next time.";
+}
+function bumpAccessory(item, idx, lg){
+  const ex = EX[item.ex];
+  if(ex.main || item.timed || ex.assist) return;   // assistance comes down by choice, not arithmetic
+  const logged = (lg.done[idx]||[]).filter(x=>x&&x.ok);
+  if(logged.length < item.sets) return;
+  if(!logged.every(x=>(x.r||0) >= item.reps)) return;
+  const cur = S.load[item.ex] != null ? S.load[item.ex] : seedLoad(item.ex);
+  if(ex.kind==="db" && cur >= S.dbMax) return;
+  S.load[item.ex] = cur + (ex.inc||5);
+}
+
+function barGraphic(total, id){
+  const wrap = document.createElement("div");
+  wrap.className = "bar";
+  const p = plates(total, id);
+  if(p === null){
+    wrap.style.cssText = "display:block;height:auto;margin:0 0 10px";
+    wrap.innerHTML = '<div class="plabel num" style="margin:0;color:var(--alert)">'+
+      total+' lb cannot be built from your plates.'+(usesFrac(id) ? '' : ' Fractional plates are kept for bench, press and curls.')+' Use the nearest weight you can load.</div>';
+    return wrap;
+  }
+  const sizes = {45:30,35:26,25:22,10:16,5:12,2.5:9,1:7,0.75:6,0.5:6,0.25:5};
+  let html = '<div class="shaft"></div>';
+  p.forEach(v => html += '<div class="plate" style="height:'+(sizes[v]||6)+'px"></div>');
+  html += '<div class="sleeve"></div>';
+  wrap.innerHTML = html + '<div class="plabel num">'+(p.length ? p.join(" + ")+" per side" : "bar only")+'</div>';
+  return wrap;
+}
+
+/* ---------- warm-up ---------- */
+/* A suggested ramp from the empty bar to the work weight. Three step sizes,
+   remembered per lift. Each weight and rep count can be edited for one session.
+   Nothing here is logged or feeds the progression. */
+const WARM_PRESETS = {
+  more: {label:"More", bar:2, ramp:[[0.40,5],[0.55,3],[0.70,3],[0.85,2]]},
+  std:  {label:"Standard", bar:2, ramp:[[0.40,5],[0.60,3],[0.80,2]]},
+  few:  {label:"Fewer", bar:1, ramp:[[0.60,3],[0.85,2]]}
+};
+const WARM_BAR_SETS = {dead:1};
+const bigPlates = id => !!(EX[id] && EX[id].big);
+const warmKind = id => (S.warm && WARM_PRESETS[S.warm[id]]) ? S.warm[id] : "std";
+function warmups(tw, id, kind){
+  if(!tw || tw <= S.bar) return [];
+  const P = WARM_PRESETS[kind || warmKind(id)] || WARM_PRESETS.std;
+  const out = [{w:S.bar, r:5, n:Math.min(P.bar, WARM_BAR_SETS[id] || P.bar)}];
+  P.ramp.forEach(([p,r])=>{
+    /* big-plate lifts land on bar + 10 lb steps (45, 55, 65 ... 135, 225, 295), so a
+       warm-up always ends in 5 and is hung with the 45s, 35s, 25s and 10s. */
+    const step = bigPlates(id) ? 10 : 5;
+    let w = bigPlates(id) ? S.bar + 10*Math.round((tw*p - S.bar)/10) : roundTo(tw*p, 5);
+    while(w > S.bar && plates(w, id) === null) w -= step;
+    if(w > out[out.length-1].w && w < tw) out.push({w:w, r:r, n:1});
+  });
+  return out;
+}
+function plateText(w, id){
+  if(w < S.bar) return {t:"lighter than the bar", bad:true};
+  const p = plates(w, id);
+  if(p === null) return {t:"cannot build from your plates", bad:true};
+  return {t:(p.length ? p.join(" + ")+" per side" : "bar only"), bad:false};
+}
+function warmEl(tw, id, lg, idx){
+  if(!warmups(tw, id).length) return null;
+  const d = document.createElement("details");
+  d.className = "warm";
+  const saved = () => (lg.wu && lg.wu[idx] && lg.wu[idx].tw === tw) ? lg.wu[idx].rows : null;
+  function fill(){
+    const ws = saved() || warmups(tw, id);
+    const count = ws.reduce((a,x)=>a+x.n, 0);
+    d.innerHTML = '<summary><span>Warm-up'+(saved() ? ' (edited)' : '')+'</span><small>'+count+' sets, not logged</small></summary>'+
+      '<div class="wlab">Steps for the '+EX[id].n.toLowerCase()+(bigPlates(id) ? ' (whole plates, ends in 5)' : '')+'</div>';
+    const seg = document.createElement("div"); seg.className = "seg";
+    Object.keys(WARM_PRESETS).forEach(k=>{
+      const b = document.createElement("button");
+      b.textContent = WARM_PRESETS[k].label;
+      b.setAttribute("aria-pressed", warmKind(id) === k ? "true" : "false");
+      b.onclick = ()=>{
+        if(!S.warm) S.warm = {};
+        S.warm[id] = k;
+        if(lg.wu) delete lg.wu[idx];
+        saveLocal(); fill(); d.open = true;
+      };
+      seg.appendChild(b);
+    });
+    d.appendChild(seg);
+
+    const foot = document.createElement("div"); foot.className = "wfoot";
+    const reset = document.createElement("button"); reset.textContent = "Reset to suggested";
+    foot.hidden = !saved();
+    reset.onclick = ()=>{ if(lg.wu) delete lg.wu[idx]; saveLocal(); fill(); d.open = true; };
+    foot.appendChild(reset);
+
+    const rows = [];
+    ws.forEach((x,i)=>{
+      const row = document.createElement("div"); row.className = "wrow num";
+      row.innerHTML =
+        '<input class="wi" type="number" inputmode="decimal" step="'+(bigPlates(id)?10:5)+'" value="'+x.w+'" aria-label="Warm-up weight, set '+(i+1)+'"><span class="wu">lb</span>'+
+        '<span class="wx">'+x.n+' x</span>'+
+        '<input class="wi wr2" type="number" inputmode="numeric" value="'+x.r+'" aria-label="Warm-up reps, set '+(i+1)+'">'+
+        '<span class="wp"></span>';
+      const [wi, ri] = row.querySelectorAll("input");
+      const wp = row.querySelector(".wp");
+      const paint = ()=>{ const pt = plateText(parseFloat(wi.value) || 0, id); wp.textContent = pt.t; wp.classList.toggle("bad", pt.bad); };
+      const commit = ()=>{
+        const vals = rows.map((r2,j)=>({
+          w: parseFloat(r2.wi.value) || ws[j].w,
+          r: parseInt(r2.ri.value, 10) || ws[j].r,
+          n: ws[j].n
+        }));
+        if(!lg.wu) lg.wu = {};
+        lg.wu[idx] = {tw:tw, rows:vals};
+        saveLocal();
+        d.querySelector("summary span").textContent = "Warm-up (edited)";
+        foot.hidden = false;
+      };
+      wi.oninput = paint; wi.onchange = commit; ri.onchange = commit;
+      rows.push({wi:wi, ri:ri});
+      paint();
+      d.appendChild(row);
+    });
+    d.appendChild(foot);
+  }
+  fill();
+  return d;
+}
+
+/* ---------- rest timer ---------- */
+let restInt=null, restLeft=0;
+function startRest(secs,label){
+  restLeft = secs;
+  $("#restL").textContent = label;
+  $("#rest").classList.remove("hide");
+  clearInterval(restInt); paintRest();
+  restInt = setInterval(()=>{
+    restLeft--; paintRest();
+    if(restLeft<=0){ clearInterval(restInt); $("#rest").classList.add("hide");
+      try{ navigator.vibrate && navigator.vibrate([120,60,120]); }catch(e){} }
+  },1000);
+}
+function paintRest(){
+  const m = Math.floor(Math.max(restLeft,0)/60), s = Math.max(restLeft,0)%60;
+  $("#restT").textContent = m+":"+String(s).padStart(2,"0");
+}
+$("#restSkip").onclick = ()=>{ clearInterval(restInt); $("#rest").classList.add("hide"); };
+$("#restAdd").onclick  = ()=>{ restLeft += 30; paintRest(); };
+
+/* ---------- week view ---------- */
+function renderWeek(){
+  renderHeader();
+  main.innerHTML = "";
+  WEEKS.forEach(wk=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    let rows = "";
+    wk.days.forEach((sid,i)=>{
+      const t = dayTotals(wk.w,i), dd = dateFor(wk.w,i);
+      const sq = lpTarget("squat", wk.w, i);
+      rows += '<button class="row" style="width:100%;text-align:left" data-w="'+wk.w+'" data-d="'+i+'">'+
+        '<div class="lab"><b style="font-weight:600">'+SESSIONS[sid].name+'</b><small>squat '+sq+
+        (dd ? ", "+DOWS[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate() : "")+
+        (S.log[key(wk.w,i)] && S.log[key(wk.w,i)].note ? ", note" : "")+'</small></div>'+
+        '<span class="pill">'+t.done+"/"+t.total+'</span></button>';
+    });
+    card.innerHTML =
+      '<div class="chead"><div class="cname"><b>Week '+wk.w+'</b><span>'+
+      SESSIONS[wk.days[0]].name+" / "+SESSIONS[wk.days[1]].name+" / "+SESSIONS[wk.days[2]].name+'</span></div>'+
+      (wk.w===cursor.w ? '<div class="ctag ok">current</div>' : '')+'</div>'+
+      '<div class="cbody">'+rows+'</div>';
+    card.querySelectorAll("[data-w]").forEach(b=>{
+      b.onclick = ()=>{ cursor={w:+b.dataset.w, d:+b.dataset.d}; view="today"; render(); window.scrollTo(0,0); };
+    });
+    main.appendChild(card);
+  });
+}
+
+/* ---------- lifts view ---------- */
+function renderLifts(){
+  main.innerHTML = '<h1 class="display" style="font-size:40px;padding:20px 0 2px">Your lifts</h1>'+
+    '<div class="sec" style="margin-top:2px">Work-set weight</div>';
+  Object.keys(EX).filter(k=>EX[k].main).forEach(id=>{
+    const pts = series(id);
+    const cur = lpTarget(id, cursor.w, cursor.d);
+    const r = REF[id];
+    const peak = r ? r.peak[0] : 0;
+    const pct = peak ? Math.round(cur/peak*100) : 0;
+    let sub;
+    if(!pts.length) sub = "nothing logged yet";
+    else if(pts.length===1) sub = "one session logged";
+    else sub = "up "+Math.round(pts[pts.length-1]-pts[0])+" lb over "+pts.length+" sessions";
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="chead"><div class="cname"><b>'+EX[id].n+'</b><span>'+sub+'</span></div>'+
+      '<div class="ctag num">'+cur+' lb</div></div>'+
+      '<div class="cbody">'+spark(pts, peak)+
+      (peak ? '<div class="note" style="border-top:none;padding-top:8px;margin-top:4px">'+pct+
+        '% of your 2024 best, which was '+peak+' for '+r.peak[1]+'. You restarted that block at '+r.back[0]+'.</div>' : '')+
+      '</div>';
+    main.appendChild(card);
+  });
+  const t = document.createElement("div");
+  t.className = "note";
+  t.textContent = "When two of these lifts have reset more than once, the linear run is done and the upper/lower split takes over.";
+  main.appendChild(t);
+}
+function series(exId){
+  const out = [];
+  SLOTS.forEach(slot=>{
+    const sess = SESSIONS[slot.sid];
+    const idx = sess.items.findIndex(i=>i.ex===exId);
+    if(idx<0) return;
+    const lg = S.log[key(slot.w,slot.d)];
+    const arr = (lg && lg.done && lg.done[idx]) || [];
+    const ok = arr.filter(x=>x&&x.ok&&x.w);
+    if(ok.length) out.push(Math.max(...ok.map(x=>x.w)));
+  });
+  return out;
+}
+function spark(vals, bench, emptyMsg){
+  if(vals.length<2) return '<div style="font-size:13px;color:var(--ink-2);padding:6px 0">'+(emptyMsg || "Log two sessions and the line shows up here.")+'</div>';
+  const all = vals.concat(bench?[bench]:[]);
+  const mn=Math.min(...all), mx=Math.max(...all), rng=(mx-mn)||1;
+  const W=300,H=50, y = v => H - ((v-mn)/rng)*H;
+  const d = vals.map((v,i)=>(i?"L":"M")+((i/(vals.length-1))*W).toFixed(1)+" "+y(v).toFixed(1)).join(" ");
+  const line = bench ? '<path d="M0 '+y(bench).toFixed(1)+' L'+W+' '+y(bench).toFixed(1)+
+    '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"/>' : '';
+  return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+line+
+    '<path d="'+d+'" fill="none" stroke="var(--brass)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+
+/* ---------- two-tap confirm (the viewer blocks confirm() dialogs) ---------- */
+function armed(btn, label, run){
+  const orig = btn.textContent;
+  let on = false, t = null;
+  btn.onclick = ()=>{
+    if(!on){
+      on = true; btn.textContent = label;
+      t = setTimeout(()=>{ on = false; btn.textContent = orig; }, 3500);
+    }else{
+      clearTimeout(t); on = false; btn.textContent = orig; run();
+    }
+  };
+}
+
+/* ---------- body view ---------- */
+const MEAS = [["waist","Waist"],["chest","Chest"],["arm","Arm"]];
+const fmt1 = n => String(Math.round(n*10)/10);
+const fmt2 = n => String(Math.round(n*100)/100);
+const signed = (n, f) => (n>0 ? "+" : n<0 ? "\u2212" : "")+(f || fmt1)(Math.abs(n));
+const dayLabel = iso => new Date(iso+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+
+function renderBody(){
+  const list = (S.body||[]).slice().sort((a,b)=> a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+  const ws = list.filter(e=>e.wt>0);
+  main.innerHTML = '<h1 class="display" style="font-size:40px;padding:20px 0 2px">Body</h1>'+
+    '<div class="sec" style="margin-top:2px">Weight in lb, measurements in inches</div>';
+
+  /* log form */
+  const form = document.createElement("div"); form.className = "card";
+  const fb = document.createElement("div"); fb.className = "cbody"; fb.style.cssText = "border-top:none;padding-top:6px";
+  const lastW = ws.length ? ws[ws.length-1].wt : "";
+  const rows = [
+    ["Date","defaults to today",'<input class="inp" id="bDate" type="date" style="width:150px" value="'+isoOf(new Date())+'">'],
+    ["Weight","lb",'<input class="inp num" id="bWt" type="number" inputmode="decimal" step="0.1" placeholder="'+lastW+'">']
+  ];
+  rows.forEach(([lab,sub,inp])=>{
+    const r = document.createElement("div"); r.className = "row";
+    r.innerHTML = '<div class="lab">'+lab+'<small>'+sub+'</small></div>'+inp;
+    fb.appendChild(r);
+  });
+  const det = document.createElement("details"); det.className = "warm"; det.style.margin = "10px 0 0";
+  let dh = '<summary><span>Measurements</span><small>optional</small></summary><div class="mrows">';
+  MEAS.forEach(([k,lab])=>{
+    const prev = [...list].reverse().find(e=>e[k]>0);
+    dh += '<div class="row"><div class="lab">'+lab+'<small>inches</small></div>'+
+      '<input class="inp num" id="b_'+k+'" type="number" inputmode="decimal" step="0.25" placeholder="'+(prev?prev[k]:"")+'"></div>';
+  });
+  det.innerHTML = dh + '</div>';
+  fb.appendChild(det);
+  const logBtn = document.createElement("button"); logBtn.className = "btn"; logBtn.textContent = "Log it";
+  logBtn.onclick = ()=>{
+    const get = id => { const v = parseFloat($(id).value); return v > 0 ? Math.round(v*100)/100 : null; };
+    const vals = {wt:get("#bWt"), waist:get("#b_waist"), chest:get("#b_chest"), arm:get("#b_arm")};
+    if(!Object.values(vals).some(Boolean)){ toast("Enter a weight or a measurement"); return; }
+    if(vals.wt && (vals.wt < 50 || vals.wt > 700)){ toast("Check that weight"); return; }
+    if(["waist","chest","arm"].some(k=>vals[k] && (vals[k] < 5 || vals[k] > 100))){ toast("Check that measurement"); return; }
+    const d = $("#bDate").value || isoOf(new Date());
+    if(!Array.isArray(S.body)) S.body = [];
+    let e = S.body.find(x=>x.d === d);
+    if(!e){ e = {d:d}; S.body.push(e); }
+    Object.keys(vals).forEach(k=>{ if(vals[k]) e[k] = vals[k]; });
+    saveLocal(); render(); toast("Logged");
+  };
+  fb.appendChild(logBtn);
+  const hint = document.createElement("div"); hint.className = "note";
+  hint.textContent = "Logging again on the same date overwrites the fields you fill in.";
+  fb.appendChild(hint);
+  form.appendChild(fb); main.appendChild(form);
+
+  /* weight trend */
+  const sum = document.createElement("div"); sum.className = "card";
+  let sh;
+  if(!ws.length){
+    sh = '<div class="empty">No weigh-ins yet. Log one above and the trend shows up here.</div>';
+  }else{
+    const last = ws[ws.length-1], first = ws[0];
+    const cut = new Date(last.d+"T00:00:00"); cut.setDate(cut.getDate()-28);
+    const cutIso = isoOf(cut);
+    let ref = null; ws.forEach(e=>{ if(e.d <= cutIso) ref = e; });
+    const since = ws.length > 1 ? signed(last.wt-first.wt) : "—";
+    const four  = ref ? signed(last.wt-ref.wt) : "—";
+    sh = '<div class="cbody" style="border-top:none"><div class="stats">'+
+      '<div class="stat"><div class="k">Latest</div><div class="v display num">'+fmt1(last.wt)+'<small>lb</small></div></div>'+
+      '<div class="stat"><div class="k">Since '+dayLabel(first.d)+'</div><div class="v display num">'+since+(ws.length>1?'<small>lb</small>':'')+'</div></div>'+
+      '<div class="stat"><div class="k">Last 4 weeks</div><div class="v display num">'+four+(ref?'<small>lb</small>':'')+'</div></div>'+
+      '</div>'+spark(ws.map(e=>e.wt), 0, "Log two weigh-ins and the line shows up here.")+
+      '<div class="note" style="border-top:none;padding-top:6px;margin-top:2px">Last weigh-in '+dayLabel(last.d)+'. '+ws.length+' logged.</div></div>';
+  }
+  sum.innerHTML = sh; main.appendChild(sum);
+
+  /* measurements */
+  const have = MEAS.filter(([k])=>list.some(e=>e[k]>0));
+  if(have.length){
+    const mc = document.createElement("div"); mc.className = "card";
+    let mh = '<div class="chead"><div class="cname"><b>Measurements</b><span>latest, and change since the first</span></div></div><div class="cbody">';
+    have.forEach(([k,lab])=>{
+      const es = list.filter(e=>e[k]>0), l = es[es.length-1], f = es[0];
+      mh += '<div class="row"><div class="lab">'+lab+'<small>'+dayLabel(l.d)+'</small></div>'+
+        '<div class="num" style="font-weight:600;text-align:right">'+fmt2(l[k])+' in'+
+        (es.length>1 ? '<small style="display:block;font-weight:400;color:var(--ink-2)">'+signed(l[k]-f[k], fmt2)+' in</small>' : '')+'</div></div>';
+    });
+    mc.innerHTML = mh + '</div>'; main.appendChild(mc);
+  }
+
+  /* history */
+  if(list.length){
+    const hc = document.createElement("div"); hc.className = "card";
+    hc.innerHTML = '<div class="chead"><div class="cname"><b>Recent entries</b><span>last 10</span></div></div>';
+    const hb = document.createElement("div"); hb.className = "cbody";
+    list.slice().reverse().slice(0,10).forEach(e=>{
+      const parts = MEAS.filter(([k])=>e[k]>0).map(([k,lab])=>lab.toLowerCase()+" "+fmt2(e[k]));
+      const row = document.createElement("div"); row.className = "row";
+      row.innerHTML = '<div class="lab"><b style="font-weight:600">'+(e.wt ? fmt1(e.wt)+" lb" : (parts.shift() || "entry"))+'</b>'+
+        '<small>'+dayLabel(e.d)+(parts.length ? " · "+parts.join(" · ") : "")+'</small></div>';
+      const rm = document.createElement("button"); rm.className = "btn ghost sm"; rm.textContent = "Remove";
+      armed(rm, "Tap again", ()=>{ S.body = S.body.filter(x=>x.d !== e.d); saveLocal(); render(); toast("Removed"); });
+      row.appendChild(rm);
+      hb.appendChild(row);
+    });
+    hc.appendChild(hb); main.appendChild(hc);
+  }
+}
+
+/* ---------- backup restore ---------- */
+function parseBackup(text){
+  let o; try{ o = JSON.parse(text); }catch(e){ return null; }
+  if(!o || typeof o !== "object" || Array.isArray(o)) return null;
+  if(!o.log || typeof o.log !== "object" || !o.lpStart || typeof o.lpStart !== "object") return null;
+  return o;
+}
+function previewBackup(text, box){
+  box.innerHTML = "";
+  const o = parseBackup(text);
+  if(!o){ toast("That is not an OpenWeight backup"); return; }
+  const sessions = Object.keys(o.log).filter(k=>o.log[k] && o.log[k].done && Object.keys(o.log[k].done).length).length;
+  const bodyN = Array.isArray(o.body) ? o.body.length : 0;
+  const when = o.updated ? new Date(o.updated).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "an unknown date";
+  const note = document.createElement("div"); note.className = "note";
+  note.textContent = "Backup from "+when+": "+sessions+" sessions logged"+(bodyN ? ", "+bodyN+" body entries" : "")+
+    ". Restoring replaces everything on this device.";
+  const go = document.createElement("button"); go.className = "btn"; go.textContent = "Replace with this backup";
+  go.onclick = ()=>{
+    S = Object.assign(blankState(), o);
+    if(!Array.isArray(S.body)) S.body = [];
+    S.setup = Object.keys(S.lpStart).length > 0;
+    cursor = S.setup ? currentSlot() : {w:1,d:0};
+    saveLocal();
+    view = S.setup ? "today" : "setup"; render(); window.scrollTo(0,0);
+    toast("Backup restored");
+  };
+  const no = document.createElement("button"); no.className = "btn ghost"; no.textContent = "Cancel";
+  no.onclick = ()=>{ box.innerHTML = ""; };
+  box.appendChild(note); box.appendChild(go); box.appendChild(no);
+}
+function restoreUI(){
+  const wrap = document.createElement("div");
+  const box = document.createElement("div");
+  const pick = document.createElement("button"); pick.className = "btn ghost"; pick.textContent = "Restore from a backup file";
+  const file = document.createElement("input");
+  file.type = "file"; file.id = "restoreFile"; file.accept = ".json,application/json,text/plain"; file.className = "hide";
+  pick.onclick = ()=> file.click();
+  file.onchange = ()=>{
+    const f = file.files && file.files[0]; if(!f) return;
+    const fr = new FileReader();
+    fr.onload  = ()=> previewBackup(String(fr.result || ""), box);
+    fr.onerror = ()=> toast("Could not read that file");
+    fr.readAsText(f);
+  };
+  const det = document.createElement("details"); det.className = "warm"; det.style.margin = "10px 0 0";
+  det.innerHTML = '<summary><span>Paste backup text instead</span></summary>';
+  const inner = document.createElement("div"); inner.style.padding = "0 12px 12px";
+  const ta = document.createElement("textarea"); ta.className = "ta"; ta.id = "restoreText";
+  ta.placeholder = "Paste the text from a saved backup";
+  const chk = document.createElement("button"); chk.className = "btn ghost"; chk.textContent = "Check pasted text";
+  chk.onclick = ()=> previewBackup(ta.value, box);
+  inner.appendChild(ta); inner.appendChild(chk); det.appendChild(inner);
+  wrap.appendChild(pick); wrap.appendChild(file); wrap.appendChild(det); wrap.appendChild(box);
+  return wrap;
+}
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  const first = !S.setup;
+  main.innerHTML = "";
+  const h = document.createElement("div");
+  h.style.padding = "22px 0 4px";
+  h.innerHTML = '<div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--brass);font-weight:600">OpenWeight</div>'+
+    '<h1 class="display" style="font-size:44px;line-height:0.9;margin-top:6px">'+(first?"Opening weights":"Setup")+'</h1>'+
+    '<p style="color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:34ch">'+
+    (first ? "These are the weights you lift on night one, not a max. Squat, deadlift and row move in 5 lb steps; the presses use your fractional plates."
+           : "Change anything here and the whole schedule recalculates.")+'</p>';
+  main.appendChild(h);
+
+  const mains = Object.keys(EX).filter(k=>EX[k].main);
+  const card = document.createElement("div"); card.className="card"; card.style.marginTop="16px";
+  const body = document.createElement("div"); body.className="cbody"; body.style.cssText="border-top:none;padding-top:6px";
+  mains.forEach(id=>{
+    const v = S.lpStart[id] != null ? S.lpStart[id] : "";
+    const row = document.createElement("div"); row.className="row";
+    row.innerHTML = '<div class="lab">'+EX[id].n+'<small>'+(id==="dead"?"one set of five":"three sets of five")+
+      ', +'+LPINC[id]+' lb a session'+(EX[id].micro?", micro plates":"")+'</small></div>'+
+      '<input class="inp num" id="lp_'+id+'" type="number" inputmode="decimal" step="5" placeholder="lb" value="'+v+'">';
+    body.appendChild(row);
+  });
+  const sd = S.start || isoOf(nextMonday());
+  [["Week one starts","snaps to that Monday",'<input class="inp" id="startD" type="date" style="width:150px" value="'+sd+'">'],
+   ["Bar weight","for plate math",'<input class="inp num" id="barW" type="number" value="'+S.bar+'">'],
+   ["Smallest plate pair","per side, sets the jump size",'<input class="inp num" id="microW" type="number" step="0.25" value="'+S.micro+'">'],
+   ["Dumbbells","lightest and heaviest pair",
+     '<input class="inp num" id="dbMin" type="number" style="width:72px" value="'+S.dbMin+'">'+
+     '<input class="inp num" id="dbMax" type="number" style="width:72px" value="'+S.dbMax+'">']
+  ].forEach(([lab,sub,inp])=>{
+    const r = document.createElement("div"); r.className="row";
+    r.innerHTML = '<div class="lab">'+lab+'<small>'+sub+'</small></div>'+inp;
+    body.appendChild(r);
+  });
+  card.appendChild(body); main.appendChild(card);
+
+  const refCard = document.createElement("div"); refCard.className="card";
+  let rows = "";
+  mains.forEach(id=>{
+    const r = REF[id]; if(!r) return;
+    rows += '<div class="row"><div class="lab">'+EX[id].n+'<small>best was '+r.peakDate+'</small></div>'+
+      '<div class="num" style="font-weight:600;width:84px;text-align:right">'+r.peak[0]+' x '+r.peak[1]+'</div>'+
+      '<div class="num" style="color:var(--ink-2);width:84px;text-align:right">'+r.back[0]+' x '+r.back[1]+(r.est?"*":"")+'</div></div>';
+  });
+  refCard.innerHTML =
+    '<div class="chead"><div class="cname"><b>Where you were before</b>'+
+    '<span>best set of that block, then where you restarted it in February</span></div></div>'+
+    '<div class="cbody">'+rows+
+    '<div class="note">That restart followed sixteen months off and took six months to reach the left-hand column. This layoff is longer, so the openers below start under it. The row figure is estimated.</div></div>';
+  const fill = document.createElement("button");
+  fill.className = "btn ghost"; fill.style.marginTop = "4px";
+  fill.textContent = "Use the recommended openers";
+  fill.onclick = ()=>{
+    mains.forEach(id=>{ const el = $("#lp_"+id); if(el) el.value = OPENER[id]; });
+    toast("Filled in");
+  };
+  refCard.querySelector(".cbody").appendChild(fill);
+  main.appendChild(refCard);
+
+  const save = document.createElement("button");
+  save.className = "btn";
+  save.textContent = first ? "Start week one" : "Save changes";
+  save.onclick = ()=>{
+    let any = false;
+    mains.forEach(id=>{
+      const v = parseFloat($("#lp_"+id).value);
+      if(v > 0){ S.lpStart[id] = v; any = true; }
+    });
+    if(!any){ toast("Enter at least one lift"); return; }
+    const dv = $("#startD").value;
+    S.start = isoOf(mondayOf(dv ? new Date(dv+"T00:00:00") : new Date()));
+    S.bar   = parseFloat($("#barW").value)   || 45;
+    S.micro = parseFloat($("#microW").value) || 1.25;
+    S.dbMin = parseFloat($("#dbMin").value)  || 15;
+    S.dbMax = parseFloat($("#dbMax").value)  || 75;
+    S.setup = true; S.load = {};
+    cursor = currentSlot();
+    saveLocal();
+    view = "today"; render(); window.scrollTo(0,0);
+    toast("Week one is set");
+  };
+  main.appendChild(save);
+
+  if(first){
+    const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Already have a backup?";
+    main.appendChild(sec);
+    main.appendChild(restoreUI());
+  }
+
+  if(!first){
+    const sec = document.createElement("div"); sec.className="sec"; sec.textContent="Data";
+    main.appendChild(sec);
+    const exp = document.createElement("button");
+    exp.className="btn ghost"; exp.textContent="Save a backup file"; exp.onclick=doExport;
+    main.appendChild(exp);
+    main.appendChild(restoreUI());
+    const clr = document.createElement("button");
+    clr.className="btn warn"; clr.textContent="Clear all logged sets";
+    armed(clr, "Tap again to erase every logged set", ()=>{
+      S.log={}; S.load={}; saveLocal(); render(); toast("Log cleared"); });
+    main.appendChild(clr);
+    const n = document.createElement("div"); n.className="note";
+    const lb = S.lastBackup ? new Date(S.lastBackup).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "none yet";
+    n.textContent = "Your log lives on this device only and does not sync. Save a backup file now and then. Last backup: "+lb+".";
+    main.appendChild(n);
+  }
+}
+
+async function doExport(){
+  const data = JSON.stringify(S,null,2);
+  const name = "openweight-backup-"+isoOf(new Date())+".json";
+  const done = msg => { S.lastBackup = Date.now(); saveLocal(); toast(msg); if(view==="setup") render(); };
+  try{
+    const file = new File([data], name, {type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"OpenWeight backup"});
+      done("Backup shared"); return;
+    }
+  }catch(e){ if(e && e.name === "AbortError") return; }
+  try{
+    const url = URL.createObjectURL(new Blob([data], {type:"application/json"}));
+    const a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    done("Backup saved"); return;
+  }catch(e){}
+  try{ await navigator.clipboard.writeText(data); done("Copied to clipboard"); }
+  catch(e){ toast("Could not export here"); }
+}
+
+let toastT=null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 1900);
+}
+
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = ()=>{ view = b.dataset.view; render(); window.scrollTo(0,0); };
+});
+
+S = Object.assign(blankState(), loadLocal() || {});
+cursor = S.setup ? currentSlot() : {w:1,d:0};
+render();
+
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+</script>
+
+
+
+
+</body>
+</html>
