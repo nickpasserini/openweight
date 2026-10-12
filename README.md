@@ -40,6 +40,10 @@ Your data is stored in the phone's browser storage for this app only. There is n
 
 Edit the files, change `CACHE = "openweight-v1"` in `sw.js` to `v2`, and redeploy. The app refreshes itself in the background and shows the new version the next time you open it (sometimes the launch after that).
 
+## Programs and training days
+
+Setup has two program choices: the 3-day linear progression (Day A / Day B) and a 4-day split (squat and press, deadlift and bench, alternating heavy and volume days). Pick the weekdays you train; the schedule dates follow them, so Sunday/Tuesday/Thursday works as well as Monday/Wednesday/Friday. Switching programs after you have logged sets archives the old log first.
+
 ## Privacy
 
 The deployed URL is public to anyone who has the link. This public build contains no personal lift history: `REF` is empty and `OPENER` holds generic starting weights (edit them in Setup). Your logged sets stay on your phone only (use Setup > backup to move them).
