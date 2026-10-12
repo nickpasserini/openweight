@@ -300,7 +300,9 @@ const EX = {
 
   dbinc:  {n:"Incline dumbbell press", kind:"db", inc:5,  seed:["bench",0.22]},
   dbcurl: {n:"Dumbbell curl",          kind:"db", inc:5,  seed:["bench",0.14]},
+  dbrow:  {n:"One-arm dumbbell row",   kind:"db", inc:5,  seed:["bench",0.22]},
   chin:   {n:"Chin-up, band assisted", kind:"bw", inc:5, assist:1},
+  chinneg:{n:"Chin-up negatives",      kind:"bw", noprog:1},
   hollow: {n:"Hollow body hold",       kind:"timed"}
 };
 
@@ -315,7 +317,7 @@ const REF = {};
 const OHP_ALT  = "Outside on the stands. If the weather is against you, press seated and log the weight you actually used.";
 const CHIN_ALT = "Band under the feet, heavy enough to finish all six. No negatives.";
 
-const SESSIONS = {
+const SESS_LP = {
   A:{name:"Day A", sub:"Press and deadlift", items:[
     {ex:"squat",  sets:3, reps:5, rest:180},
     {ex:"ohp",    sets:3, reps:5, rest:180, alt:OHP_ALT},
@@ -331,6 +333,63 @@ const SESSIONS = {
     {ex:"dbcurl", sets:3, reps:12, rest:60, acc:1}
   ]}
 };
+
+
+/* ---- program definitions ---- */
+const PROGS = {
+  lp3:   {label:"Linear progression", sub:"Three days, Day A and Day B alternating", days:3, dflt:[1,3,5]},
+  split4:{label:"Four-day split",     sub:"Squat and press, deadlift and bench, heavy and volume", days:4, dflt:[1,2,4,5]}
+};
+/* split: weekly jump on each lift's heavy-day top set */
+const SPLITINC = {squat:5, dead:5, bench:5, ohp:5, row:5};
+/* back-off share of the top set, and the share used for the 3 x 8 volume days */
+const BACKPCT = {squat:0.80, dead:0.80, bench:0.85, ohp:0.85, row:0.85};
+const VOLPCT  = 0.80;
+function heavyItem(ex, extra){
+  const b = BACKPCT[ex];
+  const sch = [{p:1,r:5},{p:b,r:5},{p:b,r:5}];
+  return Object.assign({ex:ex, sch:sch, sets:3, reps:5, rest:ex==="row"?150:180}, extra||{});
+}
+function volItem(ex, n, extra){
+  const sch = []; for(let i=0;i<n;i++) sch.push({p:VOLPCT,r:8});
+  return Object.assign({ex:ex, sch:sch, sets:n, reps:8, rest:120, vol:1}, extra||{});
+}
+const NEG_ALT = "Step or jump to the top, then lower for a slow five-count. Stop a rep short if the elbow complains.";
+const SESS_SPLIT = {
+  S1:{name:"Day 1", sub:"Squat and press, volume", items:[
+    volItem("squat",3), volItem("ohp",3,{alt:OHP_ALT}), volItem("row",3),
+    {ex:"chinneg", sets:3, reps:3, rest:90, acc:1, alt:NEG_ALT}
+  ]},
+  S2:{name:"Day 2", sub:"Deadlift and bench, heavy", items:[
+    heavyItem("dead"), heavyItem("bench"),
+    {ex:"dbcurl", sets:3, reps:12, rest:60, acc:1},
+    {ex:"dbrow",  sets:3, reps:8,  rest:60, acc:1}
+  ]},
+  S3:{name:"Day 3", sub:"Squat and press, heavy", items:[
+    heavyItem("squat"), heavyItem("ohp",{alt:OHP_ALT}), heavyItem("row"),
+    {ex:"chinneg", sets:3, reps:3, rest:90, acc:1, alt:NEG_ALT}
+  ]},
+  S4:{name:"Day 4", sub:"Deadlift and bench, volume", items:[
+    volItem("dead",2), volItem("bench",3),
+    {ex:"dbcurl", sets:3, reps:12, rest:60, acc:1},
+    {ex:"dbrow",  sets:3, reps:8,  rest:60, acc:1}
+  ]}
+};
+const SPLITNOTES = [
+  "Enter the weight you can lift for five today. Heavy days: one top set of five, then two lighter sets. Volume days: more reps, lighter bar.",
+  "Heavy day lifts go up by 5 lb each week when the top set of five is clean. Volume days follow automatically.",
+  "Volume days should feel easy by the last set, not easy at the start. If they are crushing you, your top-set weight is too high.",
+  "Four days a week is a lot of recovery to ask for. Eat, sleep, and keep the sessions short.",
+  "A missed top set repeats next week. Two misses in a row takes 5 lb off.",
+  "Elbows and forearms first: if curls or negatives sting, drop them and keep the barbell work.",
+  "Halfway. Bench and press will slow before squat and deadlift. That is normal.",
+  "If a lift has stalled twice, change the back-off share before changing the program.",
+  "Film a top set from the side. Form drifts before it breaks.",
+  "Keep the volume days honest: all eight reps, every set.",
+  "The heavy singles of five are what you are training for. Everything else supports them.",
+  "Near the end of the block, test a fresh top set of five and reset your numbers on the Setup tab.",
+  "Last programmed week. Keep adding while the top sets are still clean."
+];
 
 const WEEKNOTES = [
   "Everything will feel insultingly light. That is the point. The first three weeks buy you connective tissue, not strength.",
@@ -348,14 +407,21 @@ const WEEKNOTES = [
   "Last programmed week. Whatever is still adding weight, keep adding it — there is no need to stop on schedule."
 ];
 
-const WEEKS = [];
-for(let i=1;i<=13;i++){
-  WEEKS.push({
-    w:i,
-    days: i%2 ? ["A","B","A"] : ["B","A","B"],
-    dow: [1,3,5],
-    note: WEEKNOTES[i-1]
-  });
+let SESSIONS = SESS_LP, WEEKS = [], SLOTS = [];
+const progId = () => (typeof S === "object" && S && PROGS[S.prog]) ? S.prog : "lp3";
+function buildProgram(){
+  const prog = progId();
+  WEEKS = [];
+  if(prog === "split4"){
+    SESSIONS = SESS_SPLIT;
+    for(let i=1;i<=13;i++) WEEKS.push({w:i, days:["S1","S2","S3","S4"], note:SPLITNOTES[i-1]});
+  }else{
+    SESSIONS = SESS_LP;
+    for(let i=1;i<=13;i++) WEEKS.push({w:i, days: i%2 ? ["A","B","A"] : ["B","A","B"], note: WEEKNOTES[i-1]});
+  }
+  SLOTS = [];
+  WEEKS.forEach(wk => wk.days.forEach((sid,d) => SLOTS.push({w:wk.w, d:d, sid:sid})));
+  _dates = null;
 }
 
 /* Plate inventory, as PAIRS available. Max per side is 450, so supply is
@@ -412,9 +478,7 @@ function loadable(perSide, id){
 const DOWN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DOWS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-/* flat, ordered list of every training slot in the program */
-const SLOTS = [];
-WEEKS.forEach(wk => wk.days.forEach((sid,d) => SLOTS.push({w:wk.w, d:d, sid:sid})));
+/* flat, ordered list of every training slot in the program (see buildProgram) */
 const slotIndex = (w,d) => SLOTS.findIndex(s => s.w===w && s.d===d);
 
 /* ============================================================
@@ -433,6 +497,9 @@ function blankState(){
     log:{},         // "w3d2": {done:{itemIdx:[{w,r,ok}]}, ts, note}
     body:[],        // weigh-ins: {d, wt, waist, chest, arm}
     warm:{},        // warm-up step size per lift: more | std | few
+    prog:"lp3",     // lp3 | split4
+    days:[1,3,5],   // training weekdays, 1 = Monday ... 7 = Sunday
+    past:[],        // archived blocks when the program is switched
     lastBackup:0,
     updated:0
   };
@@ -453,6 +520,7 @@ const roundTo = (n,s) => Math.round(n/s)*s;
 const barStep = () => Math.max(2*(S.micro||1.25), 1);
 const roundBar = n => Math.max(roundTo(n, barStep()), S.bar);
 /* squat, deadlift and row move in 5 lb steps only — micro plates are for the presses */
+const incFor   = id => (progId()==="split4" ? SPLITINC[id] : LPINC[id]) || 5;
 const stepFor  = id => (EX[id] && EX[id].micro) ? barStep() : 5;
 const roundLift = (n,id) => Math.max(roundTo(n, stepFor(id)), S.bar);
 const BACKOFF = 5;   // what a second consecutive miss takes off
@@ -485,8 +553,14 @@ function outcome(exId, slot){
   const idx = sess.items.findIndex(i => i.ex === exId);
   if(idx < 0) return "none";
   const item = sess.items[idx];
+  if(item.vol) return "none";
   const lg = S.log[key(slot.w, slot.d)];
   const arr = (lg && lg.done && lg.done[idx]) || [];
+  if(item.sch){
+    const top = arr[0];
+    if(!top || !top.ok) return "none";
+    return (top.r||0) >= item.sch[0].r ? "hit" : "miss";
+  }
   const logged = arr.filter(x => x && x.ok);
   if(!logged.length) return "none";
   if(logged.length < item.sets) return "miss";
@@ -506,7 +580,6 @@ function lastLoggedIndex(){
 function lpTarget(exId, w, d){
   const start = S.lpStart[exId];
   if(start == null) return null;
-  const inc = LPINC[exId] || 5;
   const here = slotIndex(w,d);
   const last = lastLoggedIndex();
   return lpWalk(exId, here, last).wt;
@@ -518,10 +591,10 @@ function lpTarget(exId, w, d){
    A second miss in a row takes 5 lb off. */
 function lpWalk(exId, here, last){
   const micro = !!(EX[exId] && EX[exId].micro);
-  let wt = S.lpStart[exId], step = LPINC[exId] || 5, fails = 0, backoffs = 0;
+  let wt = S.lpStart[exId], step = incFor(exId), fails = 0, backoffs = 0;
   for(let i=0; i<here; i++){
     const slot = SLOTS[i];
-    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId)) continue;
+    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId && !it.vol)) continue;
     if(i <= last){
       const o = outcome(exId, slot);
       if(o === "hit"){ wt += step; fails = 0; }
@@ -547,32 +620,46 @@ const lpBackoffs = (exId,w,d) => lpWalk(exId, slotIndex(w,d)+1, lastLoggedIndex(
 /* what happens to this lift next, given what is logged for this slot */
 function nextMove(exId, w, d){
   const o = outcome(exId, SLOTS[slotIndex(w,d)]);
-  if(o === "hit") return "All five. Add "+lpStep(exId,w,d)+" lb next session.";
+  const split = progId()==="split4", nxt = split ? "next week" : "next session";
+  if(o === "hit") return (split ? "Top set of five done. Add " : "All five. Add ")+lpStep(exId,w,d)+" lb "+nxt+".";
   if(o === "none") return "";
   const micro = !!(EX[exId] && EX[exId].micro);
   const here = slotIndex(w,d);
   for(let i=here-1; i>=0; i--){
     const slot = SLOTS[i];
-    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId)) continue;
+    if(!SESSIONS[slot.sid].items.some(it => it.ex === exId && !it.vol)) continue;
     const prev = outcome(exId, slot);
     if(prev === "none") continue;
     if(prev === "miss"){
       const b = lpBackoffs(exId, w, d);
       return b >= 2
         ? "Second miss again, down another "+BACKOFF+" lb. This lift has stalled twice — the linear run is finishing."
-        : "Second miss in a row. Next session comes down "+BACKOFF+" lb.";
+        : "Second miss in a row. "+(split ? "Next week" : "Next session")+" comes down "+BACKOFF+" lb.";
     }
     break;
   }
   return micro
-    ? "Short of the target. Same weight next session, then "+Math.max((LPINC[exId]||5)/2, barStep())+" lb steps."
-    : "Short of the target. Repeat this weight next session.";
+    ? "Short of the target. Same weight "+nxt+", then "+Math.max(incFor(exId)/2, barStep())+" lb steps."
+    : "Short of the target. Repeat this weight "+nxt+".";
 }
 
+/* weight for one set: heavy/volume items hang a share of the lift's current top-set weight */
+function setW(item, i, tw){
+  if(!item.sch || !tw) return tw;
+  return item.sch[i].p === 1 ? tw : roundLift(tw*item.sch[i].p, item.ex);
+}
 function targetFor(item, w, d){
   const ex = EX[item.ex];
   if(!ex || ex.kind === "timed") return 0;
-  if(ex.main) return lpTarget(item.ex, w, d);
+  if(ex.main){
+    /* a volume day hangs a share of the same week's top-set weight, whichever day comes first */
+    let dd = d;
+    if(item.vol){
+      const hs = WEEKS[w-1].days.findIndex(sid => SESSIONS[sid].items.some(it => it.ex === item.ex && !it.vol));
+      if(hs >= 0) dd = hs;
+    }
+    return lpTarget(item.ex, w, dd);
+  }
   let base = S.load[item.ex];
   if(base == null) base = seedLoad(item.ex);
   if(ex.kind === "db") return dbRound(base);
@@ -598,36 +685,54 @@ function plates(total, id){
 }
 
 /* dates */
-function mondayOf(d){
-  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+const isoOf = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const isoDow = d => d.getDay() || 7;
+function trainDays(){
+  const need = PROGS[progId()].days;
+  const d = [...new Set((S.days||[]).map(Number).filter(x=>x>=1 && x<=7))].sort((a,b)=>a-b);
+  return d.length === need ? d : PROGS[progId()].dflt;
+}
+/* first date on or after `from` that falls on a training weekday */
+function snapToTrainDay(from, days){
+  const x = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for(let i=0;i<8;i++){ if(days.includes(isoDow(x))) return x; x.setDate(x.getDate()+1); }
   return x;
 }
-function nextMonday(){
-  const d = new Date(); d.setHours(0,0,0,0);
-  d.setDate(d.getDate() + ((8 - (d.getDay()||7)) % 7 || 7));
-  return d;
+function nextTrainDay(days){
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+1);
+  return snapToTrainDay(d, days || trainDays());
 }
-const isoOf = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-function dateFor(w,d){
-  if(!S.start) return null;
-  const base = new Date(S.start+"T00:00:00");
-  const out = new Date(base);
-  out.setDate(out.getDate() + (w-1)*7 + (WEEKS[w-1].dow[d]-1));
+let _dates = null, _datesKey = "";
+function slotDates(){
+  const days = trainDays();
+  const k = S.start+"|"+days.join()+"|"+SLOTS.length;
+  if(_dates && _datesKey === k) return _dates;
+  const out = [];
+  const cur = new Date(S.start+"T00:00:00");
+  let guard = 0;
+  while(out.length < SLOTS.length && guard++ < 800){
+    if(days.includes(isoDow(cur))) out.push(new Date(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+  _dates = out; _datesKey = k;
   return out;
 }
+function dateFor(w,d){
+  if(!S.start) return null;
+  return slotDates()[slotIndex(w,d)] || null;
+}
 function currentSlot(){
-  if(!S.start) return {w:1,d:0};
+  if(!S.start || !SLOTS.length) return {w:1,d:0};
+  const dates = slotDates();
   const today = new Date(); today.setHours(0,0,0,0);
-  const diff = Math.floor((today - new Date(S.start+"T00:00:00"))/86400000);
-  let w = Math.min(Math.max(Math.floor(diff/7)+1, 1), 13);
-  const dow = today.getDay()===0 ? 7 : today.getDay();
-  let d = WEEKS[w-1].dow.indexOf(dow);
-  if(d < 0){
-    const un = WEEKS[w-1].days.findIndex((_,i)=>!isDayDone(w,i));
-    d = un >= 0 ? un : 0;
+  let i = dates.findIndex(dt => dt.getTime() === today.getTime());
+  if(i < 0){
+    let past = -1;
+    dates.forEach((dt,k)=>{ if(dt < today) past = k; });
+    const done = k => isDayDone(SLOTS[k].w, SLOTS[k].d);
+    i = (past >= 0 && !done(past)) ? past : Math.min(past+1, SLOTS.length-1);
   }
-  return {w,d};
+  return {w:SLOTS[i].w, d:SLOTS[i].d};
 }
 
 function dayTotals(w,d){
@@ -673,10 +778,10 @@ function refreshChrome(){
 }
 
 function renderHeader(){
-  if(!cursor) cursor = currentSlot();
+  if(!cursor || !WEEKS[cursor.w-1] || cursor.d >= WEEKS[cursor.w-1].days.length) cursor = currentSlot();
   const wk = WEEKS[cursor.w-1];
   $("#hWeek").textContent = "Week "+wk.w;
-  $("#hSub").textContent = "Linear progression";
+  $("#hSub").textContent = PROGS[progId()].label;
   const dt = dateFor(cursor.w, cursor.d);
   $("#hDate").innerHTML = dt ? DOWN[dt.getDay()]+"<br>"+dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}) : "";
   const t = dayTotals(cursor.w, cursor.d);
@@ -738,7 +843,10 @@ function exCard(item, idx, lg){
   const n = item.sets;
   let bumpEl = null;
 
-  const scheme = item.timed ? n+" x "+item.secs+" seconds" : n+" x "+item.reps;
+  const scheme = item.timed ? n+" x "+item.secs+" seconds"
+    : item.vol ? n+" x "+item.reps+", volume"
+    : item.sch ? "top set of "+item.sch[0].r+", then "+(n-1)+" x "+item.sch[1].r+" at "+Math.round(item.sch[1].p*100)+"%"
+    : n+" x "+item.reps;
   const head = document.createElement("button");
   head.className = "chead";
   head.innerHTML =
@@ -759,7 +867,8 @@ function exCard(item, idx, lg){
 
   function buildBody(){
     body.innerHTML = "";
-    const tw = targetFor(item, cursor.w, cursor.d);
+    const top = targetFor(item, cursor.w, cursor.d);
+    const tw = item.sch ? setW(item, 0, top) : top;   // weight of the first set
     const arr = lg.done[idx] || [];
 
     if(!item.timed){
@@ -768,7 +877,11 @@ function exCard(item, idx, lg){
       hero.className = "hero";
       hero.innerHTML =
         '<div class="heroW display num">'+(tw || (ex.assist ? "0" : "BW"))+'<small>'+(tw||ex.assist?label:"")+'</small></div>'+
-        '<div class="heroNote">'+(ex.main
+        '<div class="heroNote">'+(item.vol
+          ? "Volume day: "+n+" sets of "+item.reps+" at "+tw+" lb. All the reps, every set."
+          : item.sch
+          ? "Top set of "+item.sch[0].r+", then "+(n-1)+" sets of "+item.sch[1].r+" at "+setW(item,1,top)+" lb ("+plateText(setW(item,1,top), item.ex).t+")."
+          : ex.main
           ? "Same weight across all "+n+" sets. Five reps each, every rep."
           : ex.assist
           ? "Log the band's rating, or 0 for none. Hit every rep and you move to a lighter band."
@@ -793,8 +906,8 @@ function exCard(item, idx, lg){
         '<div class="sn num">'+(i+1)+'</div>'+
         (item.timed ? '' :
           '<div class="fld"><input type="number" inputmode="decimal" step="'+(ex.kind==="db"?5:(ex.main?stepFor(item.ex):barStep()))+
-          '" value="'+(rec.w!=null?rec.w:tw)+'"><label>'+(ex.assist?"band":"lb")+'</label></div>')+
-        '<div class="fld"><input type="number" inputmode="numeric" value="'+(rec.r!=null?rec.r:tr)+
+          '" value="'+(rec.w!=null?rec.w:setW(item,i,top))+'"><label>'+(ex.assist?"band":"lb")+'</label></div>')+
+        '<div class="fld"><input type="number" inputmode="numeric" value="'+(rec.r!=null?rec.r:(item.sch?item.sch[i].r:tr))+
         '"><label>'+(item.timed?"sec":"reps")+'</label></div>'+
         '<button class="tick" aria-label="Log set '+(i+1)+'">✓</button>';
       const inputs = row.querySelectorAll("input");
@@ -845,7 +958,7 @@ function exCard(item, idx, lg){
 
 function accessoryNote(item, idx, lg){
   const ex = EX[item.ex];
-  if(item.timed) return "";
+  if(item.timed || ex.noprog) return "";
   const logged = (lg.done[idx]||[]).filter(x=>x&&x.ok);
   if(logged.length < item.sets) return "";
   if(!logged.every(x=>(x.r||0) >= item.reps)) return "";
@@ -856,7 +969,7 @@ function accessoryNote(item, idx, lg){
 }
 function bumpAccessory(item, idx, lg){
   const ex = EX[item.ex];
-  if(ex.main || item.timed || ex.assist) return;   // assistance comes down by choice, not arithmetic
+  if(ex.main || item.timed || ex.assist || ex.noprog) return;   // assistance comes down by choice, not arithmetic
   const logged = (lg.done[idx]||[]).filter(x=>x&&x.ok);
   if(logged.length < item.sets) return;
   if(!logged.every(x=>(x.r||0) >= item.reps)) return;
@@ -1010,16 +1123,17 @@ function renderWeek(){
     let rows = "";
     wk.days.forEach((sid,i)=>{
       const t = dayTotals(wk.w,i), dd = dateFor(wk.w,i);
-      const sq = lpTarget("squat", wk.w, i);
+      const lead = SESSIONS[sid].items[0], lt = targetFor(lead, wk.w, i);
+      const lw = lead.sch ? setW(lead, 0, lt) : lt;
       rows += '<button class="row" style="width:100%;text-align:left" data-w="'+wk.w+'" data-d="'+i+'">'+
-        '<div class="lab"><b style="font-weight:600">'+SESSIONS[sid].name+'</b><small>squat '+sq+
+        '<div class="lab"><b style="font-weight:600">'+SESSIONS[sid].name+'</b><small>'+EX[lead.ex].n.toLowerCase()+' '+lw+
         (dd ? ", "+DOWS[dd.getDay()]+" "+(dd.getMonth()+1)+"/"+dd.getDate() : "")+
         (S.log[key(wk.w,i)] && S.log[key(wk.w,i)].note ? ", note" : "")+'</small></div>'+
         '<span class="pill">'+t.done+"/"+t.total+'</span></button>';
     });
     card.innerHTML =
       '<div class="chead"><div class="cname"><b>Week '+wk.w+'</b><span>'+
-      SESSIONS[wk.days[0]].name+" / "+SESSIONS[wk.days[1]].name+" / "+SESSIONS[wk.days[2]].name+'</span></div>'+
+      wk.days.map(id=>SESSIONS[id].name).join(" / ")+'</span></div>'+
       (wk.w===cursor.w ? '<div class="ctag ok">current</div>' : '')+'</div>'+
       '<div class="cbody">'+rows+'</div>';
     card.querySelectorAll("[data-w]").forEach(b=>{
@@ -1056,7 +1170,7 @@ function renderLifts(){
   });
   const t = document.createElement("div");
   t.className = "note";
-  t.textContent = "When two of these lifts have reset more than once, the linear run is done and the upper/lower split takes over.";
+  t.textContent = "When two of these lifts have reset more than once, the linear run is done: switch to the four-day split in Setup.";
   main.appendChild(t);
 }
 function series(exId){
@@ -1064,7 +1178,7 @@ function series(exId){
   SLOTS.forEach(slot=>{
     const sess = SESSIONS[slot.sid];
     const idx = sess.items.findIndex(i=>i.ex===exId);
-    if(idx<0) return;
+    if(idx<0 || sess.items[idx].vol) return;
     const lg = S.log[key(slot.w,slot.d)];
     const arr = (lg && lg.done && lg.done[idx]) || [];
     const ok = arr.filter(x=>x&&x.ok&&x.w);
@@ -1228,6 +1342,10 @@ function previewBackup(text, box){
   go.onclick = ()=>{
     S = Object.assign(blankState(), o);
     if(!Array.isArray(S.body)) S.body = [];
+    if(!PROGS[S.prog]) S.prog = "lp3";
+    if(!Array.isArray(S.days)) S.days = PROGS[S.prog].dflt.slice();
+    if(!Array.isArray(S.past)) S.past = [];
+    buildProgram();
     S.setup = Object.keys(S.lpStart).length > 0;
     cursor = S.setup ? currentSlot() : {w:1,d:0};
     saveLocal();
@@ -1280,16 +1398,55 @@ function renderSetup(){
   const mains = Object.keys(EX).filter(k=>EX[k].main);
   const card = document.createElement("div"); card.className="card"; card.style.marginTop="16px";
   const body = document.createElement("div"); body.className="cbody"; body.style.cssText="border-top:none;padding-top:6px";
+  let selProg = progId(), selDays = trainDays().slice();
+  const DLET = ["M","T","W","T","F","S","S"];
+  const progRow = document.createElement("div"); progRow.className = "row"; progRow.style.flexWrap = "wrap";
+  progRow.innerHTML = '<div class="lab">Program<small id="progSub"></small></div>';
+  const pseg = document.createElement("div"); pseg.className = "seg"; pseg.id = "progSeg";
+  Object.keys(PROGS).forEach(id=>{
+    const b = document.createElement("button");
+    b.textContent = id==="lp3" ? "3 days" : "4-day split"; b.dataset.prog = id;
+    b.onclick = ()=>{ if(selProg===id) return; selProg = id; selDays = PROGS[id].dflt.slice(); paint(); };
+    pseg.appendChild(b);
+  });
+  progRow.appendChild(pseg); body.appendChild(progRow);
+  const dayRow = document.createElement("div"); dayRow.className = "row"; dayRow.style.flexWrap = "wrap";
+  dayRow.innerHTML = '<div class="lab">Training days<small id="dayHint"></small></div>';
+  const dseg = document.createElement("div"); dseg.className = "seg"; dseg.id = "daySeg"; dseg.style.cssText = "width:100%;margin-top:6px";
+  for(let n=1;n<=7;n++){
+    const b = document.createElement("button");
+    b.textContent = DLET[n-1]; b.dataset.dow = n; b.setAttribute("aria-label", DOWN[n%7]);
+    b.style.cssText = "flex:1;padding:10px 0";
+    b.onclick = ()=>{
+      const at = selDays.indexOf(n);
+      if(at >= 0) selDays.splice(at,1);
+      else if(selDays.length >= PROGS[selProg].days){ toast("Pick "+PROGS[selProg].days+" days; tap one to drop it first"); return; }
+      else selDays.push(n);
+      selDays.sort((a,b)=>a-b); paint();
+    };
+    dseg.appendChild(b);
+  }
+  dayRow.appendChild(dseg); body.appendChild(dayRow);
+  const subFor = (id, prog) => prog==="split4"
+    ? "top set of five, +"+SPLITINC[id]+" lb a week"+(EX[id].micro?", micro plates":"")
+    : (id==="dead"?"one set of five":"three sets of five")+", +"+LPINC[id]+" lb a session"+(EX[id].micro?", micro plates":"");
+  function paint(){
+    pseg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.prog===selProg ? "true":"false"));
+    dseg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed", selDays.includes(+b.dataset.dow) ? "true":"false"));
+    const need = PROGS[selProg].days;
+    $("#progSub").textContent = PROGS[selProg].sub;
+    $("#dayHint").textContent = "Pick "+need+" ("+selDays.length+" chosen)"+(selDays.length===need ? "" : ", needs "+need);
+    mains.forEach(id=>{ const el = $("#sub_"+id); if(el) el.textContent = subFor(id, selProg); });
+  }
   mains.forEach(id=>{
     const v = S.lpStart[id] != null ? S.lpStart[id] : "";
     const row = document.createElement("div"); row.className="row";
-    row.innerHTML = '<div class="lab">'+EX[id].n+'<small>'+(id==="dead"?"one set of five":"three sets of five")+
-      ', +'+LPINC[id]+' lb a session'+(EX[id].micro?", micro plates":"")+'</small></div>'+
+    row.innerHTML = '<div class="lab">'+EX[id].n+'<small id="sub_'+id+'"></small></div>'+
       '<input class="inp num" id="lp_'+id+'" type="number" inputmode="decimal" step="5" placeholder="lb" value="'+v+'">';
     body.appendChild(row);
   });
-  const sd = S.start || isoOf(nextMonday());
-  [["Week one starts","snaps to that Monday",'<input class="inp" id="startD" type="date" style="width:150px" value="'+sd+'">'],
+  const sd = S.start || isoOf(nextTrainDay(selDays));
+  [["First session","moves to your next training day",'<input class="inp" id="startD" type="date" style="width:150px" value="'+sd+'">'],
    ["Bar weight","for plate math",'<input class="inp num" id="barW" type="number" value="'+S.bar+'">'],
    ["Smallest plate pair","per side, sets the jump size",'<input class="inp num" id="microW" type="number" step="0.25" value="'+S.micro+'">'],
    ["Dumbbells","lightest and heaviest pair",
@@ -1301,6 +1458,7 @@ function renderSetup(){
     body.appendChild(r);
   });
   card.appendChild(body); main.appendChild(card);
+  paint();
 
   const refCard = document.createElement("div"); refCard.className="card";
   let rows = "";
@@ -1328,15 +1486,31 @@ function renderSetup(){
   const save = document.createElement("button");
   save.className = "btn";
   save.textContent = first ? "Start week one" : "Save changes";
+  let saveArm = null;
   save.onclick = ()=>{
-    let any = false;
+    const need = PROGS[selProg].days;
+    if(selDays.length !== need){ toast("Pick "+need+" training days"); return; }
+    if(!mains.some(id=>parseFloat($("#lp_"+id).value) > 0)){ toast("Enter at least one lift"); return; }
+    const switching = !first && selProg !== progId();
+    const hasLogs = Object.keys(S.log).some(k=>S.log[k] && S.log[k].done && Object.keys(S.log[k].done).length);
+    if(switching && hasLogs){
+      if(!saveArm){
+        save.textContent = "Tap again: starts a new block, current log is archived";
+        saveArm = setTimeout(()=>{ saveArm = null; save.textContent = "Save changes"; }, 3500);
+        return;
+      }
+      clearTimeout(saveArm); saveArm = null;
+      S.past = Array.isArray(S.past) ? S.past : [];
+      S.past.push({prog:progId(), start:S.start, days:trainDays(), lpStart:S.lpStart, log:S.log, ended:Date.now()});
+      S.log = {}; S.lpStart = {};
+    }
     mains.forEach(id=>{
       const v = parseFloat($("#lp_"+id).value);
-      if(v > 0){ S.lpStart[id] = v; any = true; }
+      if(v > 0) S.lpStart[id] = v;
     });
-    if(!any){ toast("Enter at least one lift"); return; }
+    S.prog = selProg; S.days = selDays.slice(); buildProgram();
     const dv = $("#startD").value;
-    S.start = isoOf(mondayOf(dv ? new Date(dv+"T00:00:00") : new Date()));
+    S.start = isoOf(snapToTrainDay(dv ? new Date(dv+"T00:00:00") : new Date(), S.days));
     S.bar   = parseFloat($("#barW").value)   || 45;
     S.micro = parseFloat($("#microW").value) || 1.25;
     S.dbMin = parseFloat($("#dbMin").value)  || 15;
@@ -1345,7 +1519,7 @@ function renderSetup(){
     cursor = currentSlot();
     saveLocal();
     view = "today"; render(); window.scrollTo(0,0);
-    toast("Week one is set");
+    toast(first ? "Week one is set" : "Saved");
   };
   main.appendChild(save);
 
@@ -1407,6 +1581,7 @@ document.querySelectorAll("nav button").forEach(b=>{
 });
 
 S = Object.assign(blankState(), loadLocal() || {});
+buildProgram();
 cursor = S.setup ? currentSlot() : {w:1,d:0};
 render();
 

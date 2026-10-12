@@ -3,7 +3,7 @@
    Cached files are served instantly and refreshed in the background, so an
    update shows up the next time you open the app. Bump CACHE to force a
    full re-download of every file. */
-const CACHE = "openweight-v1";
+const CACHE = "openweight-v2";
 const ASSETS = [
   "./",
   "index.html",
