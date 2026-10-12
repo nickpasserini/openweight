@@ -47,3 +47,7 @@ Setup has two program choices: the 3-day linear progression (Day A / Day B) and 
 ## Privacy
 
 The deployed URL is public to anyone who has the link. This public build contains no personal lift history: `REF` is empty and `OPENER` holds generic starting weights (edit them in Setup). Your logged sets stay on your phone only (use Setup > backup to move them).
+
+## Missed sessions
+
+If a scheduled session has passed with nothing logged, Today shows a "Missed" card. **Bring it forward to today** moves that session to today and slides the rest of the plan after it. **Skip it instead** drops it; the weights simply repeat.

@@ -494,6 +494,8 @@ function blankState(){
     bar:45, micro:1.25, dbMin:15, dbMax:75,
     lpStart:{},     // opening work weight per main lift
     load:{},        // accessory working weight
+    moves:{},       // slot index -> ISO date: a session moved to a new day, the rest slides after it
+    skips:{},       // "w3d2": true, a session knowingly dropped
     log:{},         // "w3d2": {done:{itemIdx:[{w,r,ok}]}, ts, note}
     body:[],        // weigh-ins: {d, wt, waist, chest, arm}
     warm:{},        // warm-up step size per lift: more | std | few
@@ -705,12 +707,20 @@ function nextTrainDay(days){
 let _dates = null, _datesKey = "";
 function slotDates(){
   const days = trainDays();
-  const k = S.start+"|"+days.join()+"|"+SLOTS.length;
+  const mv = S.moves || {};
+  const k = S.start+"|"+days.join()+"|"+SLOTS.length+"|"+JSON.stringify(mv);
   if(_dates && _datesKey === k) return _dates;
   const out = [];
   const cur = new Date(S.start+"T00:00:00");
   let guard = 0;
   while(out.length < SLOTS.length && guard++ < 800){
+    const m = mv[out.length];
+    if(m){
+      const at = new Date(m+"T00:00:00");
+      out.push(at);
+      cur.setTime(at.getTime()); cur.setDate(cur.getDate()+1);
+      continue;
+    }
     if(days.includes(isoDow(cur))) out.push(new Date(cur));
     cur.setDate(cur.getDate()+1);
   }
@@ -733,6 +743,58 @@ function currentSlot(){
     i = (past >= 0 && !done(past)) ? past : Math.min(past+1, SLOTS.length-1);
   }
   return {w:SLOTS[i].w, d:SLOTS[i].d};
+}
+
+/* the master check: first session that is past due, untouched, and has nothing logged after it */
+function missedSlot(){
+  if(!S.setup || !S.start || !SLOTS.length) return null;
+  const dates = slotDates();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const started = k => dayTotals(SLOTS[k].w, SLOTS[k].d).done > 0;
+  const i = SLOTS.findIndex((sl,k)=> !started(k) && !(S.skips && S.skips[key(sl.w,sl.d)]));
+  if(i < 0 || !(dates[i] < today)) return null;
+  for(let k=i+1;k<SLOTS.length;k++) if(started(k)) return null;
+  return {i, w:SLOTS[i].w, d:SLOTS[i].d, date:dates[i], late:Math.round((today-dates[i])/86400000)};
+}
+function pullToToday(i){
+  S.moves = S.moves || {};
+  Object.keys(S.moves).forEach(k=>{ if(+k >= i) delete S.moves[k]; });
+  S.moves[i] = isoOf(new Date());
+  cursor = currentSlot(); saveLocal(); render(); window.scrollTo(0,0);
+  toast("Moved to today");
+}
+function skipMissed(m){
+  S.skips = S.skips || {};
+  S.skips[key(m.w,m.d)] = true;
+  S.moves = S.moves || {};
+  Object.keys(S.moves).forEach(k=>{ if(+k > m.i) delete S.moves[k]; });
+  if(m.i+1 < SLOTS.length){
+    const t = new Date(); t.setHours(0,0,0,0);
+    S.moves[m.i+1] = isoOf(snapToTrainDay(t, trainDays()));
+  }
+  cursor = currentSlot(); saveLocal(); render(); window.scrollTo(0,0);
+  toast("Skipped, weights repeat");
+}
+function missedBanner(){
+  const m = missedSlot();
+  if(!m) return null;
+  const sess = SESSIONS[SLOTS[m.i].sid];
+  const wd = m.date.toLocaleDateString(undefined,{weekday:"long"});
+  const box = document.createElement("div"); box.className = "card"; box.id = "missed";
+  const t = document.createElement("div"); t.className = "note";
+  t.style.cssText = "border-top:none;margin:0 0 10px;padding-top:0";
+  t.textContent = "Missed: "+wd+"'s "+sess.name.toLowerCase()+(m.late>1 ? " ("+m.late+" days ago)" : "")+
+    ". Do it today and the rest of the plan slides back.";
+  box.appendChild(t);
+  const go = document.createElement("button"); go.className = "btn"; go.id = "pullBtn";
+  go.textContent = "Bring it forward to today";
+  go.onclick = ()=> pullToToday(m.i);
+  box.appendChild(go);
+  const sk = document.createElement("button"); sk.className = "btn ghost sm"; sk.id = "skipBtn";
+  sk.style.marginTop = "8px"; sk.textContent = "Skip it instead";
+  armed(sk, "Tap again: skip, weights repeat", ()=> skipMissed(m));
+  box.appendChild(sk);
+  return box;
 }
 
 function dayTotals(w,d){
@@ -805,6 +867,8 @@ function renderToday(){
   const sess = SESSIONS[wk.days[cursor.d]];
   const lg = dayLog(cursor.w, cursor.d);
   main.innerHTML = "";
+  const mb = missedBanner();
+  if(mb) main.appendChild(mb);
 
   const intro = document.createElement("div");
   intro.className = "note";
@@ -1345,6 +1409,8 @@ function previewBackup(text, box){
     if(!PROGS[S.prog]) S.prog = "lp3";
     if(!Array.isArray(S.days)) S.days = PROGS[S.prog].dflt.slice();
     if(!Array.isArray(S.past)) S.past = [];
+    if(!S.moves || typeof S.moves!=="object") S.moves = {};
+    if(!S.skips || typeof S.skips!=="object") S.skips = {};
     buildProgram();
     S.setup = Object.keys(S.lpStart).length > 0;
     cursor = S.setup ? currentSlot() : {w:1,d:0};
@@ -1508,9 +1574,12 @@ function renderSetup(){
       const v = parseFloat($("#lp_"+id).value);
       if(v > 0) S.lpStart[id] = v;
     });
+    const oldSig = progId()+"|"+trainDays().join()+"|"+S.start;
     S.prog = selProg; S.days = selDays.slice(); buildProgram();
     const dv = $("#startD").value;
     S.start = isoOf(snapToTrainDay(dv ? new Date(dv+"T00:00:00") : new Date(), S.days));
+    if(oldSig !== S.prog+"|"+S.days.join()+"|"+S.start){ S.moves = {}; S.skips = {}; }
+    if(switching && hasLogs){ S.moves = {}; S.skips = {}; }
     S.bar   = parseFloat($("#barW").value)   || 45;
     S.micro = parseFloat($("#microW").value) || 1.25;
     S.dbMin = parseFloat($("#dbMin").value)  || 15;
